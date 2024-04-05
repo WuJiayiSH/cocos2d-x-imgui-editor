@@ -1,0 +1,7 @@
+[submodule "invoke.hpp"]
+	path = invoke.hpp
+	url = https://github.com/BlackMATov/invoke.hpp
+[submodule "cocos2d-x-imgui"]
+	path = cocos2d-x-imgui
+	url = https://github.com/WuJiayiSH/cocos2d-x-imgui
+	branch = v3-docking
