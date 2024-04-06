@@ -11,7 +11,7 @@ namespace CCImEditor
         friend class WidgetFactory;
 		friend class Editor;
 
-        const std::string& getName() const {return _name;}
+        const std::string& getTypeName() const {return _typeName;}
         const std::string& getWindowName() const {return _windowName;}
         
         uint32_t getMask() const { return _mask; };
@@ -26,7 +26,7 @@ namespace CCImEditor
         virtual void draw(bool* open) = 0;
         virtual void update(float) {};
 
-        std::string _name;
+        std::string _typeName;
         std::string _windowName;
         uint32_t _mask;
     };

@@ -2,9 +2,9 @@
 
 namespace CCImEditor
 {
-    bool Widget::init(const std::string& name, const std::string& windowName, uint32_t mask)
+    bool Widget::init(const std::string& typeName, const std::string& windowName, uint32_t mask)
     {
-        _name = name;
+        _typeName = typeName;
         _windowName = windowName;
         _mask = mask;
         return true;

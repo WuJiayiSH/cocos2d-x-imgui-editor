@@ -19,7 +19,7 @@ namespace CCImEditor
         void onExit() override;
         
         void addWidget(Widget* widget);
-        Widget* getWidgetByName(const std::string& name) const;
+        Widget* getWidget(const std::string& typeName) const;
         
         cocos2d::Node* getEditingNode() const { return _editingNode; };
 

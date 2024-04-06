@@ -124,7 +124,7 @@ namespace CCImEditor
                         {
                             if (ImGui::MenuItem(displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0)))
                             {
-                                if (widgetType.allowMultiple() || !Editor::getInstance()->getWidgetByName(widgetType.getName()))
+                                if (widgetType.allowMultiple() || !Editor::getInstance()->getWidget(widgetType.getName()))
                                 {
                                     if (Widget* widget = widgetType.create())
                                     {
@@ -294,14 +294,14 @@ namespace CCImEditor
         _widgets.push_back(widget);
     }
 
-    Widget* Editor::getWidgetByName(const std::string& name) const
+    Widget* Editor::getWidget(const std::string& typeName) const
     {
         for(Widget* widget : _widgets)
         {
             if (!widget)
                 continue;
 
-            if (widget->getName() == name)
+            if (widget->getTypeName() == typeName)
                 return widget;
         }
 
