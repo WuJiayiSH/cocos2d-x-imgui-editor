@@ -15,6 +15,7 @@ namespace CCImEditor
     namespace
     {
         static cocos2d::RefPtr<cocos2d::Node> s_nextEditingNode;
+        static cocos2d::RefPtr<cocos2d::Node> s_nextAddingNode;
 
         void drawDockSpace()
         {
@@ -42,7 +43,7 @@ namespace CCImEditor
                 {
                     if (ImGui::BeginMenu("New"))
                     {
-                        const std::unordered_map<std::string, NodeFactory::NodeType>& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
+                        const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
                         for (const std::pair<std::string, NodeFactory::NodeType>& pair : nodeTypes)
                         {
                             const NodeFactory::NodeType& nodeType = pair.second;
@@ -76,6 +77,33 @@ namespace CCImEditor
                         cocos2d::Director::getInstance()->end();
                     }
                     
+                    ImGui::EndMenu();
+                }
+
+                if (ImGui::BeginMenu("Add"))
+                {
+                    const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
+                    for (NodeFactory::NodeTypeMap::const_iterator it = nodeTypes.begin(); it != nodeTypes.end(); it++)
+                    {
+                        const NodeFactory::NodeType& nodeType = it->second;
+                        const std::string& displayName = nodeType.getDisplayName();
+                        const size_t lastSlash = displayName.find_last_of('/');
+                        
+                        bool isMenuOpen = true;
+                        if (lastSlash != std::string::npos)
+                            isMenuOpen = ImGuiHelper::BeginNestedMenu(displayName.substr(0, lastSlash).c_str());
+
+                        if (isMenuOpen)
+                        {
+                            if (ImGui::MenuItem(displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0)))
+                            {
+                                s_nextAddingNode = nodeType.create();
+                            }
+                        }
+
+                        if (lastSlash != std::string::npos)
+                            ImGuiHelper::EndNestedMenu();
+                    }
                     ImGui::EndMenu();
                 }
 
@@ -222,6 +250,42 @@ namespace CCImEditor
 
             cocos2d::Director::getInstance()->getRunningScene()->addChild(s_nextEditingNode);
             s_nextEditingNode = nullptr;
+        }
+
+        if (s_nextAddingNode)
+        {
+            // add to selected node if possible
+            if (cocos2d::Node* node = dynamic_cast<cocos2d::Node*>(Editor::getInstance()->getUserObject("CCImGuiWidgets.NodeTree.SelectedNode")))
+            {
+                if (NodeImDrawerBase* drawer = static_cast<NodeImDrawerBase*>(node->getComponent("CCImEditor.NodeImDrawer")))
+                {
+                    const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
+                    NodeFactory::NodeTypeMap::const_iterator it = nodeTypes.find(drawer->getTypeName());
+                    CC_ASSERT(it != nodeTypes.end());
+                    if ((it->second.getMask() & NodeFlags_CanHaveChildren) > 0)
+                    {
+                        node->addChild(s_nextAddingNode);
+                        s_nextAddingNode = nullptr;
+                    }
+                }
+            }
+
+            // otherwise add to edting node
+            if (s_nextAddingNode)
+            {
+                if (_editingNode)
+                {
+                    _editingNode->addChild(s_nextAddingNode);
+                    s_nextAddingNode = nullptr;
+                }
+            }
+
+            // cancel if failed
+            if (s_nextAddingNode)
+            {
+                CCLOGERROR("Failed to add node, editing node does not exist!");
+                s_nextAddingNode = nullptr;
+            }
         }
     }
 

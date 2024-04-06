@@ -45,11 +45,12 @@ namespace CCImEditor
         template <typename T>
         void registerNode(const char* name, const char* displayName, uint32_t mask = 0)
         {
-            std::function<cocos2d::Node*()> constructor = []() -> cocos2d::Node* {
+            std::function<cocos2d::Node*()> constructor = [name]() -> cocos2d::Node* {
                 T* visitor = new (std::nothrow)T();
                 if (!visitor)
                     return nullptr;
 
+                visitor->_typeName = name;
                 if (!visitor->init())
                 {
                     delete visitor;
@@ -61,14 +62,15 @@ namespace CCImEditor
             NodeFactory::getInstance()->_nodeTypes.emplace(name, NodeType(name, displayName, mask, constructor));
         }
 
-        const std::unordered_map<std::string, NodeType>& getNodeTypes() { return _nodeTypes; };
+        typedef std::unordered_map<std::string, NodeType> NodeTypeMap;
+        const NodeTypeMap& getNodeTypes() { return _nodeTypes; };
 
         cocos2d::Node* createNode(const std::string& name);
         
         static NodeFactory* getInstance();
 
     private:
-        std::unordered_map<std::string, NodeType> _nodeTypes;
+        NodeTypeMap _nodeTypes;
     };
 }
 

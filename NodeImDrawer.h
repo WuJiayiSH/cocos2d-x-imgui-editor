@@ -10,7 +10,9 @@ namespace CCImEditor
     class NodeImDrawerBase : public cocos2d::Component
     {
     public:
+        friend class NodeFactory;
         virtual void draw() {};
+        const std::string& getTypeName() const {return _typeName;}
         
     protected:
         template <class Getter, class Setter, class Object, class... Args>
@@ -22,6 +24,9 @@ namespace CCImEditor
                 invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
             }
         }
+
+    private:
+        std::string _typeName;
     };
 
     template <typename NodeType>
