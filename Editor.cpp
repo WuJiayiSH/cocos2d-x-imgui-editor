@@ -18,6 +18,7 @@ namespace CCImEditor
         static cocos2d::RefPtr<cocos2d::Node> s_nextEditingNode;
         static cocos2d::RefPtr<cocos2d::Node> s_nextAddingNode;
         static std::function<void(std::string)> s_saveFileCallback;
+        static std::string s_currentFile;
 
         bool serializeNode(cocos2d::Node* node, cocos2d::ValueMap& target)
         {
@@ -48,7 +49,17 @@ namespace CCImEditor
             target.emplace("children", cocos2d::Value(std::move(childrenVal)));
             return true;
         }
-        
+
+        void serializeEditingNodeToFile(const std::string& file)
+        {
+            cocos2d::ValueMap root;
+            if (serializeNode(Editor::getInstance()->getEditingNode(), root))
+            {
+                cocos2d::FileUtils::getInstance()->writeToFile(root, file);
+                s_currentFile = file;
+            }
+        }
+
         void drawDockSpace()
         {
             ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
@@ -104,16 +115,17 @@ namespace CCImEditor
                     }
 
                     ImGui::Separator();
+                    if (ImGui::MenuItem("Save"))
+                    {
+                        if (s_currentFile.empty())
+                            s_saveFileCallback = serializeEditingNodeToFile;
+                        else
+                            serializeEditingNodeToFile(s_currentFile);
+                    }
+
                     if (ImGui::MenuItem("Save As"))
                     {
-                        s_saveFileCallback = [](const std::string& file)
-                        {
-                            cocos2d::ValueMap root;
-                            if (serializeNode(Editor::getInstance()->getEditingNode(), root))
-                            {
-                                cocos2d::FileUtils::getInstance()->writeToFile(root, file);
-                            }
-                        };
+                        s_saveFileCallback = serializeEditingNodeToFile;
                     }
 
                     ImGui::Separator();
