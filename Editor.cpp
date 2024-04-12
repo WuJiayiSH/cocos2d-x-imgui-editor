@@ -9,6 +9,7 @@
 #include "widgets/NodeTree.h"
 #include "widgets/Viewport.h"
 #include "nodes/Node3D.h"
+#include "FileDialog.h"
 
 namespace CCImEditor
 {
@@ -16,7 +17,38 @@ namespace CCImEditor
     {
         static cocos2d::RefPtr<cocos2d::Node> s_nextEditingNode;
         static cocos2d::RefPtr<cocos2d::Node> s_nextAddingNode;
+        static std::function<void(std::string)> s_saveFileCallback;
 
+        bool serializeNode(cocos2d::Node* node, cocos2d::ValueMap& target)
+        {
+            if (!node)
+                return false;
+
+            NodeImDrawerBase* drawer = static_cast<NodeImDrawerBase*>(node->getComponent("CCImEditor.NodeImDrawer"));
+            if (!drawer)
+                return false;
+
+            target.emplace("type", drawer->getTypeName());
+
+            cocos2d::ValueMap properties;
+            drawer->serialize(properties);
+            target.emplace("properties", cocos2d::Value(std::move(properties)));
+            
+            cocos2d::ValueVector childrenVal;
+            cocos2d::Vector<cocos2d::Node*>& children = node->getChildren();
+            for (cocos2d::Node* child: children)
+            {
+                cocos2d::ValueMap childVal;
+                if (serializeNode(child, childVal))
+                {
+                    childrenVal.push_back(cocos2d::Value(std::move(childVal)));
+                }
+            }
+
+            target.emplace("children", cocos2d::Value(std::move(childrenVal)));
+            return true;
+        }
+        
         void drawDockSpace()
         {
             ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
@@ -69,6 +101,19 @@ namespace CCImEditor
                                 ImGuiHelper::EndNestedMenu();
                         }
                         ImGui::EndMenu();
+                    }
+
+                    ImGui::Separator();
+                    if (ImGui::MenuItem("Save As"))
+                    {
+                        s_saveFileCallback = [](const std::string& file)
+                        {
+                            cocos2d::ValueMap root;
+                            if (serializeNode(Editor::getInstance()->getEditingNode(), root))
+                            {
+                                cocos2d::FileUtils::getInstance()->writeToFile(root, file);
+                            }
+                        };
                     }
 
                     ImGui::Separator();
@@ -228,6 +273,17 @@ namespace CCImEditor
 
             if (!open)
                 widget = nullptr;
+        }
+
+        if (s_saveFileCallback)
+        {
+            std::string path;
+            if (Internal::saveFile(path))
+            {
+                if (!path.empty())
+                    s_saveFileCallback(path);
+                s_saveFileCallback = nullptr;
+            }
         }
     }
 

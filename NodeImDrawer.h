@@ -4,14 +4,22 @@
 #include "cocos2d.h"
 #include "invoke.hpp/invoke.hpp"
 #include "PropertyImDrawer.h"
+#include "PropertyImSerializer.h"
 
 namespace CCImEditor
 {
     class NodeImDrawerBase : public cocos2d::Component
     {
     public:
+        enum class Context
+        {
+            DRAW,
+            SERIALIZE
+        };
+
         friend class NodeFactory;
         virtual void draw() {};
+        void serialize(cocos2d::ValueMap&);
         const std::string& getTypeName() const {return _typeName;}
         
     protected:
@@ -19,14 +27,24 @@ namespace CCImEditor
         void property(const char *label, Getter &&getter, Setter &&setter, Object&& object, Args &&...args)
         {
             auto v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
-            if (PropertyImDrawer<decltype(v)>::draw(label, v, std::forward<Args>(args)...))
+
+            if (_context == Context::DRAW)
             {
-                invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                if (PropertyImDrawer<decltype(v)>::draw(label, v, std::forward<Args>(args)...))
+                {
+                    invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                }
+            }
+            else if (_context == Context::SERIALIZE)
+            {
+                PropertyImSerializer<decltype(v)>::serialize(*_contextValue, label, v);
             }
         }
 
     private:
         std::string _typeName;
+        Context _context = Context::DRAW;
+        cocos2d::ValueMap* _contextValue = nullptr;
     };
 
     template <typename NodeType>

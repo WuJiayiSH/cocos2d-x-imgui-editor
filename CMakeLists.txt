@@ -19,6 +19,7 @@ file(GLOB_RECURSE SOURCE
     ${CMAKE_CURRENT_LIST_DIR}/Editor.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ImGuiHelper.cpp
     ${CMAKE_CURRENT_LIST_DIR}/NodeFactory.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/NodeImDrawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Widget.cpp
     ${CMAKE_CURRENT_LIST_DIR}/WidgetFactory.cpp
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Node3D.cpp
@@ -26,6 +27,7 @@ file(GLOB_RECURSE SOURCE
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeTree.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeProperties.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/Viewport.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/FileDialog.cpp
 )
 file(GLOB_RECURSE HEADER
     ${CMAKE_CURRENT_LIST_DIR}/Editor.h
@@ -33,6 +35,7 @@ file(GLOB_RECURSE HEADER
     ${CMAKE_CURRENT_LIST_DIR}/NodeFactory.h
     ${CMAKE_CURRENT_LIST_DIR}/NodeImDrawer.h
     ${CMAKE_CURRENT_LIST_DIR}/PropertyImDrawer.h
+    ${CMAKE_CURRENT_LIST_DIR}/PropertyImSerializer.h
     ${CMAKE_CURRENT_LIST_DIR}/Widget.h
     ${CMAKE_CURRENT_LIST_DIR}/WidgetFactory.h
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Node3D.h
@@ -40,6 +43,7 @@ file(GLOB_RECURSE HEADER
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeTree.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeProperties.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/Viewport.h
+    ${CMAKE_CURRENT_LIST_DIR}/FileDialog.h
 )
 
 add_library(${LIB_NAME} STATIC ${SOURCE} ${HEADER})
