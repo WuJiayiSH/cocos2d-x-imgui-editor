@@ -10,4 +10,13 @@ namespace CCImEditor
         _contextValue = nullptr;
         _context = Context::DRAW;
     }
+
+    void NodeImDrawerBase::deserialize(const cocos2d::ValueMap& source)
+    {
+        _context = Context::DESERIALIZE;
+        _contextValue = const_cast<cocos2d::ValueMap*>(&source); // save only, deserializer only take const-qualified source
+        draw();
+        _contextValue = nullptr;
+        _context = Context::DRAW;
+    }
 }

@@ -78,15 +78,29 @@ namespace Internal {
         }
     } // anonymous namespace
 
-    bool saveFile(std::string& outFile)
+    bool fileDialog(FileDialogType type, std::string& outFile)
     {
-        if (!ImGui::IsPopupOpen("Save As"))
-            ImGui::OpenPopup("Save As");
+        bool dummyOpen = true;
+        const char* windowName;
+        const char* actionName;
+        switch(type)
+        {
+            case FileDialogType::SAVE:
+                windowName = "Save As";
+                actionName = "Save";
+                break;
+            default:
+                windowName = "Open File";
+                actionName = "Open";
+                break;
+        }
+
+        if (!ImGui::IsPopupOpen(windowName))
+            ImGui::OpenPopup(windowName);
 
         ImGui::SetNextWindowSize(ImVec2(640, 360), ImGuiCond_FirstUseEver);
 
-        bool openPopup = true;
-        if (ImGui::BeginPopupModal("Save As", &openPopup))
+        if (ImGui::BeginPopupModal(windowName, &dummyOpen))
         {
             // Search paths
             cocos2d::FileUtils* fileUtils = cocos2d::FileUtils::getInstance();
@@ -144,22 +158,37 @@ namespace Internal {
             ImGui::SameLine();
             ImVec2 buttonSize(ImGui::GetFontSize() * 7.0f, 0.0f);
             bool outFileChanged = false;
-            if (ImGui::Button("Save", buttonSize))
+            if (ImGui::Button(actionName, buttonSize))
             {
                 std::string file = s_selectedDirectory + s_filenameBuf;
-                if (fileUtils->isFileExist(file))
+                do
                 {
-                    ImGui::OpenPopup("Confrom");
-                }
-                else
-                {
+                    if (fileUtils->isFileExist(file) && type == FileDialogType::SAVE)
+                    {
+                        ImGui::OpenPopup("Confirm###Replace");
+                        break;
+                    }
+
+                    if (!fileUtils->isFileExist(file) && type == FileDialogType::OPEN)
+                    {
+                        ImGui::OpenPopup("Open File###FileNotFound");
+                        break;
+                    }
+
                     outFile = std::move(file);
                     outFileChanged = true;
-                }
+                } while (false);
             }
 
-            bool openConfirm = true;
-            if (ImGui::BeginPopupModal("Confrom", &openConfirm))
+            if (ImGui::BeginPopupModal("Open File###FileNotFound", &dummyOpen))
+            {
+                ImGui::Text("File does not exists!");
+                if (ImGui::Button("OK", buttonSize))
+                    ImGui::CloseCurrentPopup();
+                ImGui::EndPopup();
+            }
+
+            if (ImGui::BeginPopupModal("Confirm###Replace", &dummyOpen))
             {
                 ImGui::Text("File already exists. \nDo you want to replace it?");
                 if (ImGui::Button("Yes", buttonSize))

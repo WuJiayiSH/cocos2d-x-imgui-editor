@@ -5,7 +5,13 @@
 
 namespace CCImEditor {
 namespace Internal {
-   bool saveFile(std::string& outFile);
+    enum class FileDialogType
+    {
+        SAVE,
+        OPEN
+    };
+    
+    bool fileDialog(FileDialogType type, std::string& outFile);
 }
 }
 

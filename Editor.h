@@ -22,6 +22,7 @@ namespace CCImEditor
         Widget* getWidget(const std::string& typeName) const;
         
         cocos2d::Node* getEditingNode() const { return _editingNode; };
+        void setEditingNode(cocos2d::Node* node);
 
         void setDebugMode(bool isDebugMode) { _isDebugMode = isDebugMode; }
         bool isDebugMode() const { return _isDebugMode; };

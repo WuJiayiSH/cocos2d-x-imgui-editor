@@ -5,6 +5,7 @@
 #include "invoke.hpp/invoke.hpp"
 #include "PropertyImDrawer.h"
 #include "PropertyImSerializer.h"
+#include "PropertyImDeserializer.h"
 
 namespace CCImEditor
 {
@@ -14,30 +15,42 @@ namespace CCImEditor
         enum class Context
         {
             DRAW,
-            SERIALIZE
+            SERIALIZE,
+            DESERIALIZE
         };
 
         friend class NodeFactory;
         virtual void draw() {};
         void serialize(cocos2d::ValueMap&);
+        void deserialize(const cocos2d::ValueMap&);
         const std::string& getTypeName() const {return _typeName;}
         
     protected:
         template <class Getter, class Setter, class Object, class... Args>
         void property(const char *label, Getter &&getter, Setter &&setter, Object&& object, Args &&...args)
         {
-            auto v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
-
+            using PropertyTypeMaybeQualified = typename invoke_hpp::invoke_result_t<decltype(getter), Object>;
+            using PropertyType = typename std::remove_cv<std::remove_reference<PropertyTypeMaybeQualified>::type>::type;
             if (_context == Context::DRAW)
             {
-                if (PropertyImDrawer<decltype(v)>::draw(label, v, std::forward<Args>(args)...))
+                auto v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
+                if (PropertyImDrawer<PropertyType>::draw(label, v, std::forward<Args>(args)...))
                 {
                     invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
                 }
             }
             else if (_context == Context::SERIALIZE)
             {
-                PropertyImSerializer<decltype(v)>::serialize(*_contextValue, label, v);
+                const auto& v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
+                PropertyImSerializer<PropertyType>::serialize(*_contextValue, label, v);
+            }
+            else if (_context == Context::DESERIALIZE)
+            {
+                PropertyType v;
+                if (PropertyImDeserializer<PropertyType>::deserialize(*_contextValue, label, v))
+                {
+                    invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                }
             }
         }
 
