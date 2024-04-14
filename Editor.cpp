@@ -21,6 +21,36 @@ namespace CCImEditor
         static std::function<void(std::string)> s_openFileCallback;
         static std::string s_currentFile;
 
+        cocos2d::Node* getSelectedNode()
+        {
+            if (cocos2d::Ref* obj = Editor::getInstance()->getUserObject("CCImGuiWidgets.NodeTree.SelectedNode"))
+            {
+                CC_ASSERT(dynamic_cast<cocos2d::Node*>(obj));
+                return static_cast<cocos2d::Node*>(obj);
+            }
+            
+            return nullptr;
+        }
+
+        bool canHaveChildren(cocos2d::Node* node)
+        {
+            if (node)
+            {
+                if (NodeImDrawerBase* drawer = static_cast<NodeImDrawerBase*>(node->getComponent("CCImEditor.NodeImDrawer")))
+                {
+                    const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
+                    NodeFactory::NodeTypeMap::const_iterator it = nodeTypes.find(drawer->getTypeName());
+                    CC_ASSERT(it != nodeTypes.end());
+                    if ((it->second.getMask() & NodeFlags_CanHaveChildren) > 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         bool serializeNode(cocos2d::Node* node, cocos2d::ValueMap& target)
         {
             if (!node)
@@ -184,6 +214,29 @@ namespace CCImEditor
                     ImGui::EndMenu();
                 }
 
+                if (ImGui::BeginMenu("Edit"))
+                {
+                    if (ImGui::MenuItem("Cut", "CTRL+X"))
+                        Editor::getInstance()->cut();
+
+                    if (ImGui::MenuItem("Copy", "CTRL+C"))
+                        Editor::getInstance()->copy();
+                    
+                    if (ImGui::MenuItem("Paste", "CTRL+V"))
+                        Editor::getInstance()->paste();
+
+                    ImGui::Separator();
+                    if (ImGui::MenuItem("Delete"))
+                    {
+                        if (cocos2d::Node* node = getSelectedNode())
+                        {
+                            if (Editor::getInstance()->getEditingNode() != node && node->getComponent("CCImEditor.NodeImDrawer"))
+                                node->runAction(cocos2d::RemoveSelf::create());
+                        }
+                    }
+                    ImGui::EndMenu();
+                }
+
                 if (ImGui::BeginMenu("Add"))
                 {
                     const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
@@ -245,6 +298,17 @@ namespace CCImEditor
                 }
                 ImGui::EndMenuBar();
             }
+
+            // shortcuts
+            ImGuiIO& io = ImGui::GetIO();
+            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_X, false))
+                Editor::getInstance()->cut();
+
+            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_C, false))
+                Editor::getInstance()->copy();
+
+            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_V, false))
+                Editor::getInstance()->paste();
 
             ImGui::End();
         }
@@ -377,7 +441,7 @@ namespace CCImEditor
         if (s_nextAddingNode)
         {
             // add to selected node if possible
-            if (cocos2d::Node* node = dynamic_cast<cocos2d::Node*>(Editor::getInstance()->getUserObject("CCImGuiWidgets.NodeTree.SelectedNode")))
+            if (cocos2d::Node* node = getSelectedNode())
             {
                 if (NodeImDrawerBase* drawer = static_cast<NodeImDrawerBase*>(node->getComponent("CCImEditor.NodeImDrawer")))
                 {
@@ -462,5 +526,58 @@ namespace CCImEditor
         _editingNode = node;
 
         cocos2d::Director::getInstance()->getRunningScene()->addChild(node);
+    }
+
+    void Editor::copy()
+    {
+        cocos2d::ValueMap target;
+        if (cocos2d::Node* node = getSelectedNode())
+        {
+            if (serializeNode(node, target))
+            {
+                _clipboardValue = std::move(target);
+            }
+        }
+    }
+
+    void Editor::cut()
+    {
+        cocos2d::ValueMap target;
+        if (cocos2d::Node* node = getSelectedNode())
+        {
+            if (node != _editingNode && serializeNode(node, target))
+            {
+                _clipboardValue = std::move(target);
+                node->runAction(cocos2d::RemoveSelf::create());
+            }
+        }
+    }
+    
+    void Editor::paste()
+    {
+        scheduleOnce([this](float)
+        {
+            cocos2d::Node* parent = nullptr;
+            if (cocos2d::Node* node = getSelectedNode())
+            {
+                while(true)
+                {
+                    node = node->getParent();
+                    if (!node)
+                        break;
+            
+                    if (canHaveChildren(node))
+                    {
+                        parent = node;
+                        break;
+                    }
+                }
+            }
+
+            if (!parent)
+                parent = Editor::getInstance()->getEditingNode();
+
+            deserializeNode(parent, _clipboardValue);
+        }, 0, "paste");
     }
 }
