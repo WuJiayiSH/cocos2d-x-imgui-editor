@@ -42,22 +42,28 @@ namespace CCImEditor
             std::function<cocos2d::Node*()> _constructor;
         };
     
-        template <typename T>
+        template <typename NodeImDrawerType, typename OwnerType>
         void registerNode(const char* name, const char* displayName, uint32_t mask = 0)
         {
             std::function<cocos2d::Node*()> constructor = [name]() -> cocos2d::Node* {
-                T* visitor = new (std::nothrow)T();
-                if (!visitor)
+                OwnerType* owner = OwnerType::create();
+                if (!owner)
                     return nullptr;
 
-                visitor->_typeName = name;
-                if (!visitor->init())
+                NodeImDrawerType* nodeImDrawer = new (std::nothrow)NodeImDrawerType();
+                if (!nodeImDrawer)
+                    return nullptr;
+
+                nodeImDrawer->_typeName = name;
+                if (!nodeImDrawer->init())
                 {
-                    delete visitor;
+                    delete nodeImDrawer;
                     return nullptr;
                 }
 
-                return visitor->getOwner();
+                owner->addComponent(nodeImDrawer);
+                owner->setCameraMask(owner->getCameraMask() | (1 << 15));
+                return owner;
             };
             NodeFactory::getInstance()->_nodeTypes.emplace(name, NodeType(name, displayName, mask, constructor));
         }

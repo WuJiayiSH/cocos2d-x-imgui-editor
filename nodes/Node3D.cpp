@@ -1,5 +1,4 @@
 #include "Node3D.h"
-#include "NodeFactory.h"
 #include "cocos2d.h"
 
 using namespace cocos2d;

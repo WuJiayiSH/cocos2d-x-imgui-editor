@@ -32,6 +32,10 @@ namespace CCImEditor
         
         void visit(cocos2d::Renderer *renderer, const cocos2d::Mat4 &parentTransform, uint32_t parentFlags);
 
+        void openLoadFileDialog();
+        void openSaveFileDialog();
+        bool fileDialogResult(std::string& outFile);
+
         void copy();
         void cut();
         void paste();

@@ -14,7 +14,7 @@ namespace CCImEditor
         {
             if (cocos2d::Node* node = dynamic_cast<cocos2d::Node*>(Editor::getInstance()->getUserObject("CCImGuiWidgets.NodeTree.SelectedNode")))
             {
-                if (NodeImDrawerBase* drawer = static_cast<NodeImDrawerBase*>(node->getComponent("CCImEditor.NodeImDrawer")))
+                if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer")))
                 {
                     drawer->draw();
                 }

@@ -4,6 +4,7 @@
 #include <string>
 #include "Widget.h"
 #include "imgui/imgui.h"
+#include "Editor.h"
 
 namespace CCImEditor
 {
@@ -15,12 +16,40 @@ namespace CCImEditor
             CCLOGWARN("Can't draw property: %s, missing specialization", label);
             return false;
         }
+
+        static bool serialize(cocos2d::ValueMap& target, const char* label, ...)
+        {
+            CCLOGWARN("Can't serialize property: %s, missing specialization", label);
+            return false;
+        }
+
+        static bool deserialize(const cocos2d::ValueMap& source, const char* label, ...)
+        {
+            CCLOGWARN("Can't deserialize property: %s, missing specialization", label);
+            return false;
+        }
     };
 
     template <>
     struct PropertyImDrawer<bool> {
         static bool draw(const char* label, bool& v) {
             return ImGui::Checkbox(label, &v);
+        }
+
+        static bool serialize(cocos2d::ValueMap& target, const char* label, bool v) {
+            target.emplace(label, v);
+            return true;
+        }
+
+        static bool deserialize(const cocos2d::ValueMap& source, const char* label, bool& v) {
+            cocos2d::ValueMap::const_iterator it = source.find(label);
+            if (it != source.end())
+            {
+                v = it->second.asBool();
+                return true;
+            }
+            
+            return false;
         }
     };
     
@@ -33,6 +62,67 @@ namespace CCImEditor
                 vec.set(v);
                 return true;
             }
+            return false;
+        }
+
+        static bool serialize(cocos2d::ValueMap& target, const char* label, const cocos2d::Vec3& vec) {
+            cocos2d::ValueVector v;
+            v.push_back(cocos2d::Value(vec.x));
+            v.push_back(cocos2d::Value(vec.y));
+            v.push_back(cocos2d::Value(vec.z));
+            target.emplace(label, v);
+            return true;
+        }
+
+        static bool deserialize(const cocos2d::ValueMap& source, const char* label, cocos2d::Vec3& vec) {
+            cocos2d::ValueMap::const_iterator it = source.find(label);
+            if (it != source.end())
+            {
+                const cocos2d::ValueVector& v = it->second.asValueVector();
+                vec.x = v[0].asFloat();
+                vec.y = v[1].asFloat();
+                vec.z = v[2].asFloat();
+                return true;
+            }
+            
+            return false;
+        }
+    };
+
+    struct FilePath {};
+    template <>
+    struct PropertyImDrawer<FilePath> {
+        static bool draw(const char* label, cocos2d::Value& filePath) {
+            std::string v = filePath.asString();
+            // assume imgui does not modify the c string because of the read-only flag
+            ImGui::InputText(label, const_cast<char*>(v.c_str()), v.size(), ImGuiInputTextFlags_ReadOnly);
+            if (ImGui::IsItemActivated())
+            {
+                Editor::getInstance()->openLoadFileDialog();
+            }
+
+            if (Editor::getInstance()->fileDialogResult(v) && !v.empty())
+            {
+                filePath = v;
+                return true;
+            }
+
+            return false;
+        }
+
+        static bool serialize(cocos2d::ValueMap& target, const char* label, const cocos2d::Value& filePath) {
+            target.emplace(label, filePath);
+            return true;
+        }
+
+        static bool deserialize(const cocos2d::ValueMap& source, const char* label, cocos2d::Value& filePath) {
+            cocos2d::ValueMap::const_iterator it = source.find(label);
+            if (it != source.end())
+            {
+                filePath = it->second;
+                return true;
+            }
+            
             return false;
         }
     };

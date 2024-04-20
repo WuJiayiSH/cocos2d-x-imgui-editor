@@ -6,6 +6,8 @@ namespace CCImEditor {
 namespace Internal {
     namespace
     {
+        std::string s_selectedSearchPath;
+
         std::string s_selectedDirectory;
 
         std::string s_selectedFile;
@@ -29,7 +31,7 @@ namespace Internal {
             }
         }
 
-        void listDirectories(const std::vector<std::string>& directories)
+        void listDirectories(const std::vector<std::string>& directories, const std::string& searchPath = "")
         {
             cocos2d::FileUtils* fileUtils = cocos2d::FileUtils::getInstance();
             for (size_t i = 0; i < directories.size(); i++)
@@ -67,11 +69,14 @@ namespace Internal {
                 );
 
                 if (ImGui::IsItemClicked())
+                {
+                    s_selectedSearchPath = searchPath.empty() ? directory : searchPath;
                     s_selectedDirectory = directory;
+                }
 
                 if (open && hasSubDirectories)
                 {
-                    listDirectories(subDirectories);
+                    listDirectories(subDirectories, searchPath.empty() ? directory : searchPath);
                     ImGui::TreePop();
                 }
             }
@@ -108,7 +113,10 @@ namespace Internal {
 
             IM_ASSERT(searchPaths.size() > 0);
             if (s_selectedDirectory.empty())
+            {
                 s_selectedDirectory = searchPaths[0];
+                s_selectedSearchPath = searchPaths[0];
+            }
 
             const float footerHeight = ImGui::GetFrameHeightWithSpacing(); // height of filename input and buttons
             if (ImGui::BeginTable("Left", 1, ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_ContextMenuInBody, ImVec2(150, -footerHeight)))
@@ -169,10 +177,17 @@ namespace Internal {
                         break;
                     }
 
-                    if (!fileUtils->isFileExist(file) && type == FileDialogType::OPEN)
+                    if (!fileUtils->isFileExist(file) && type == FileDialogType::LOAD)
                     {
                         ImGui::OpenPopup("Open File###FileNotFound");
                         break;
+                    }
+
+                    // TODO: search path should be returned
+                    if (type == FileDialogType::LOAD)
+                    {
+                        IM_ASSERT(file.substr(0, s_selectedSearchPath.size()) == s_selectedSearchPath);
+                        file.erase(0, s_selectedSearchPath.size());
                     }
 
                     outFile = std::move(file);

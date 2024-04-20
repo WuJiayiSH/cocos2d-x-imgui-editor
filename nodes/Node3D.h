@@ -5,7 +5,7 @@
 
 namespace CCImEditor
 {
-    class Node3D: public NodeImDrawer<cocos2d::Node>
+    class Node3D: public NodeImDrawer
     {
     public:
         void draw() override;

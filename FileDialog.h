@@ -8,7 +8,7 @@ namespace Internal {
     enum class FileDialogType
     {
         SAVE,
-        OPEN
+        LOAD
     };
     
     bool fileDialog(FileDialogType type, std::string& outFile);

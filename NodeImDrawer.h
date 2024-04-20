@@ -4,12 +4,10 @@
 #include "cocos2d.h"
 #include "invoke.hpp/invoke.hpp"
 #include "PropertyImDrawer.h"
-#include "PropertyImSerializer.h"
-#include "PropertyImDeserializer.h"
 
 namespace CCImEditor
 {
-    class NodeImDrawerBase : public cocos2d::Component
+    class NodeImDrawer : public cocos2d::Component
     {
     public:
         enum class Context
@@ -24,8 +22,35 @@ namespace CCImEditor
         void serialize(cocos2d::ValueMap&);
         void deserialize(const cocos2d::ValueMap&);
         const std::string& getTypeName() const {return _typeName;}
-        
+        bool init() override;
+
     protected:
+        template <class PropertyType, class Setter, class Object, class... Args>
+        void customProperty(const char *label, Setter &&setter, Object&& object, Args &&...args)
+        {
+            if (_context == Context::DRAW)
+            {
+                cocos2d::Value& v = _customValue[label];
+                if (PropertyImDrawer<PropertyType>::draw(label, v, std::forward<Args>(args)...))
+                {
+                    invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                }
+            }
+            else if (_context == Context::SERIALIZE)
+            {
+                const cocos2d::Value& v = _customValue[label];
+                PropertyImDrawer<PropertyType>::serialize(*_contextValue, label, v);
+            }
+            else if (_context == Context::DESERIALIZE)
+            {
+                cocos2d::Value& v = _customValue[label];
+                if (PropertyImDrawer<PropertyType>::deserialize(*_contextValue, label, v))
+                {
+                    invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                }
+            }
+        }
+
         template <class Getter, class Setter, class Object, class... Args>
         void property(const char *label, Getter &&getter, Setter &&setter, Object&& object, Args &&...args)
         {
@@ -42,12 +67,12 @@ namespace CCImEditor
             else if (_context == Context::SERIALIZE)
             {
                 const auto& v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
-                PropertyImSerializer<PropertyType>::serialize(*_contextValue, label, v);
+                PropertyImDrawer<PropertyType>::serialize(*_contextValue, label, v);
             }
             else if (_context == Context::DESERIALIZE)
             {
                 PropertyType v;
-                if (PropertyImDeserializer<PropertyType>::deserialize(*_contextValue, label, v))
+                if (PropertyImDrawer<PropertyType>::deserialize(*_contextValue, label, v))
                 {
                     invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
                 }
@@ -58,27 +83,10 @@ namespace CCImEditor
         std::string _typeName;
         Context _context = Context::DRAW;
         cocos2d::ValueMap* _contextValue = nullptr;
+        cocos2d::ValueMap _customValue;
     };
 
-    template <typename NodeType>
-    class NodeImDrawer : public NodeImDrawerBase
-    {
-    public:
-        bool init() override
-        {
-            if (!cocos2d::Component::init())
-                return false;
-
-            NodeType* node = NodeType::create();
-            if (!node)
-                return false;
-
-            setName("CCImEditor.NodeImDrawer");
-            node->addComponent(this);
-            node->setCameraMask(node->getCameraMask() | (1 << 15));
-            return true;
-        }
-    };
+   
 }
 
 #endif

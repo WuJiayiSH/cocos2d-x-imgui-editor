@@ -3,12 +3,14 @@
 #include "WidgetFactory.h"
 #include "CCIMGUI.h"
 #include "imgui_impl_cocos2dx.h"
+#include "imgui/imgui_internal.h"
 #include "ImGuiHelper.h"
 #include "widgets/ImGuiDemo.h"
 #include "widgets/NodeProperties.h"
 #include "widgets/NodeTree.h"
 #include "widgets/Viewport.h"
 #include "nodes/Node3D.h"
+#include "nodes/Sprite3D.h"
 #include "FileDialog.h"
 
 namespace CCImEditor
@@ -20,6 +22,9 @@ namespace CCImEditor
         static std::function<void(std::string)> s_saveFileCallback;
         static std::function<void(std::string)> s_openFileCallback;
         static std::string s_currentFile;
+        Internal::FileDialogType s_fileDialogType;
+        std::unordered_map<ImGuiID, std::string> s_fileDialogResults;
+        ImGuiID s_fileDialogImGuiID = 0;
 
         cocos2d::Node* getSelectedNode()
         {
@@ -36,7 +41,7 @@ namespace CCImEditor
         {
             if (node)
             {
-                if (NodeImDrawerBase* drawer = static_cast<NodeImDrawerBase*>(node->getComponent("CCImEditor.NodeImDrawer")))
+                if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer")))
                 {
                     const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
                     NodeFactory::NodeTypeMap::const_iterator it = nodeTypes.find(drawer->getTypeName());
@@ -56,7 +61,7 @@ namespace CCImEditor
             if (!node)
                 return false;
 
-            NodeImDrawerBase* drawer = static_cast<NodeImDrawerBase*>(node->getComponent("CCImEditor.NodeImDrawer"));
+            NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer"));
             if (!drawer)
                 return false;
 
@@ -94,7 +99,7 @@ namespace CCImEditor
             cocos2d::ValueMap::const_iterator propertiesIt = source.find("properties");
             if (propertiesIt != source.end() && propertiesIt->second.getType() == cocos2d::Value::Type::MAP)
             {
-                NodeImDrawerBase* drawer = static_cast<NodeImDrawerBase*>(node->getComponent("CCImEditor.NodeImDrawer"));
+                NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer"));
                 drawer->deserialize(propertiesIt->second.asValueMap());
             }
 
@@ -184,9 +189,10 @@ namespace CCImEditor
                     ImGui::Separator();
                     if (ImGui::MenuItem("Open File..."))
                     {
+                        Editor::getInstance()->openLoadFileDialog();
                         s_openFileCallback = [](const std::string file)
                         {
-                            cocos2d::ValueMap source = cocos2d::FileUtils::getInstance()->getValueMapFromFile(file);
+                            const cocos2d::ValueMap& source = cocos2d::FileUtils::getInstance()->getValueMapFromFile(file);
                             deserializeNode(nullptr, source);
                         };
                     }
@@ -195,13 +201,17 @@ namespace CCImEditor
                     if (ImGui::MenuItem("Save"))
                     {
                         if (s_currentFile.empty())
+                        {
+                            Editor::getInstance()->openSaveFileDialog();
                             s_saveFileCallback = serializeEditingNodeToFile;
+                        }
                         else
                             serializeEditingNodeToFile(s_currentFile);
                     }
 
                     if (ImGui::MenuItem("Save As..."))
                     {
+                        Editor::getInstance()->openSaveFileDialog();
                         s_saveFileCallback = serializeEditingNodeToFile;
                     }
 
@@ -398,25 +408,28 @@ namespace CCImEditor
                 widget = nullptr;
         }
 
-        if (s_saveFileCallback)
+        if (s_fileDialogImGuiID > 0)
         {
-            std::string path;
-            if (Internal::fileDialog(Internal::FileDialogType::SAVE, path))
+            std::string file;
+            if (Internal::fileDialog(s_fileDialogType, file))
             {
-                if (!path.empty())
-                    s_saveFileCallback(path);
-                s_saveFileCallback = nullptr;
-            }
-        }
-
-        if (s_openFileCallback)
-        {
-            std::string path;
-            if (Internal::fileDialog(Internal::FileDialogType::OPEN, path))
-            {
-                if (!path.empty())
-                    s_openFileCallback(path);
-                s_openFileCallback = nullptr;
+                // TODO: fileDialogResult is more imgui style but does not work in menubar
+                if (s_saveFileCallback && s_fileDialogType == Internal::FileDialogType::SAVE)
+                {
+                    s_saveFileCallback(file);
+                    s_saveFileCallback = nullptr;
+                }
+                else if (s_openFileCallback && s_fileDialogType == Internal::FileDialogType::LOAD)
+                {
+                    s_openFileCallback(file);
+                    s_openFileCallback = nullptr;
+                }
+                else
+                {
+                    s_fileDialogResults[s_fileDialogImGuiID] = std::move(file);
+                }
+                
+                s_fileDialogImGuiID = 0;
             }
         }
     }
@@ -443,7 +456,7 @@ namespace CCImEditor
             // add to selected node if possible
             if (cocos2d::Node* node = getSelectedNode())
             {
-                if (NodeImDrawerBase* drawer = static_cast<NodeImDrawerBase*>(node->getComponent("CCImEditor.NodeImDrawer")))
+                if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer")))
                 {
                     const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
                     NodeFactory::NodeTypeMap::const_iterator it = nodeTypes.find(drawer->getTypeName());
@@ -504,7 +517,8 @@ namespace CCImEditor
 
     void Editor::registerNodes()
     {
-        NodeFactory::getInstance()->registerNode<Node3D>("CCImEditor.Node3D", "3D/Node3D", NodeFlags_CanHaveChildren | NodeFlags_CanBeRoot);
+        NodeFactory::getInstance()->registerNode<Node3D, cocos2d::Node>("CCImEditor.Node3D", "3D/Node3D", NodeFlags_CanHaveChildren | NodeFlags_CanBeRoot);
+        NodeFactory::getInstance()->registerNode<Sprite3D, cocos2d::Sprite3D>("CCImEditor.Sprite3D", "3D/Sprite3D");
     }
 
     void Editor::visit(cocos2d::Renderer *renderer, const cocos2d::Mat4 &parentTransform, uint32_t parentFlags)
@@ -579,5 +593,49 @@ namespace CCImEditor
 
             deserializeNode(parent, _clipboardValue);
         }, 0, "paste");
+    }
+
+    void Editor::openLoadFileDialog()
+    {
+        if (ImGuiContext* context = ImGui::GetCurrentContext())
+        {
+            s_fileDialogImGuiID = context->LastItemData.ID;
+            s_fileDialogType = Internal::FileDialogType::LOAD;
+            s_fileDialogResults[s_fileDialogImGuiID].clear();
+        }
+        else
+        {
+            CCLOGERROR("File dialog has to be opened from a imgui context");
+        }
+    }
+
+    void Editor::openSaveFileDialog()
+    {
+        if (ImGuiContext* context = ImGui::GetCurrentContext())
+        {
+            s_fileDialogImGuiID = context->LastItemData.ID;
+            s_fileDialogType = Internal::FileDialogType::SAVE;
+            s_fileDialogResults[s_fileDialogImGuiID].clear();
+        }
+        else
+        {
+            CCLOGERROR("File dialog has to be opened from a imgui context");
+        }
+    }
+
+    bool Editor::fileDialogResult(std::string& outFile)
+    {
+        if (ImGuiContext* context = ImGui::GetCurrentContext())
+        {
+            ImGuiID id = context->LastItemData.ID;
+            std::string& result = s_fileDialogResults[id];
+            if (!result.empty())
+            {
+                outFile = std::move(result);
+                return true;
+            }
+        }
+
+        return false;
     }
 }
