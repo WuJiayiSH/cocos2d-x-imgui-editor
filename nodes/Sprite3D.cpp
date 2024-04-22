@@ -7,19 +7,25 @@ namespace CCImEditor
     {
         Node3D::draw();
 
+        if (_context == Context::DRAW && !ImGui::CollapsingHeader("Sprite3D", ImGuiTreeNodeFlags_DefaultOpen))
+            return;
+
+        cocos2d::Sprite3D* owner = static_cast<cocos2d::Sprite3D*>(getOwner());
         customProperty<FilePath>("Model", 
-        [] (cocos2d::Node* node, const cocos2d::Value& filePath)
+        [] (cocos2d::Sprite3D* node, const cocos2d::Value& filePath)
         {
             node->removeAllChildren();
-            static_cast<cocos2d::Sprite3D*>(node)->initWithFile(filePath.asString());
+            node->initWithFile(filePath.asString());
         },
-        getOwner());
+        owner);
 
         customProperty<FilePath>("Texture", 
-        [] (cocos2d::Node* node, const cocos2d::Value& filePath)
+        [] (cocos2d::Sprite3D* node, const cocos2d::Value& filePath)
         {
-            static_cast<cocos2d::Sprite3D*>(node)->setTexture(filePath.asString());
+            node->setTexture(filePath.asString());
         },
-        getOwner());
+        owner);
+
+        property<Mask<LightFlag>>("LightMask", &cocos2d::Sprite3D::getLightMask, &cocos2d::Sprite3D::setLightMask, owner);
     }
 }

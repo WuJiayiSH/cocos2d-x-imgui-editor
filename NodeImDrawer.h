@@ -79,9 +79,39 @@ namespace CCImEditor
             }
         }
 
+        template <class DrawerType, class Getter, class Setter, class Object, class... Args>
+        void property(const char *label, Getter &&getter, Setter &&setter, Object&& object, Args &&...args)
+        {
+            using PropertyTypeMaybeQualified = typename invoke_hpp::invoke_result_t<decltype(getter), Object>;
+            using PropertyType = typename std::remove_cv<std::remove_reference<PropertyTypeMaybeQualified>::type>::type;
+            if (_context == Context::DRAW)
+            {
+                auto v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
+                if (PropertyImDrawer<DrawerType>::draw(label, v, std::forward<Args>(args)...))
+                {
+                    invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                }
+            }
+            else if (_context == Context::SERIALIZE)
+            {
+                const auto& v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
+                PropertyImDrawer<DrawerType>::serialize(*_contextValue, label, v);
+            }
+            else if (_context == Context::DESERIALIZE)
+            {
+                PropertyType v;
+                if (PropertyImDrawer<DrawerType>::deserialize(*_contextValue, label, v))
+                {
+                    invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                }
+            }
+        }
+
+    protected:
+        Context _context = Context::DRAW;
+
     private:
         std::string _typeName;
-        Context _context = Context::DRAW;
         cocos2d::ValueMap* _contextValue = nullptr;
         cocos2d::ValueMap _customValue;
     };

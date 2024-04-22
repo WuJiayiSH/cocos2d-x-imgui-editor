@@ -7,6 +7,9 @@ namespace CCImEditor
 {
     void Node3D::draw()
     {
+        if (_context == Context::DRAW && !ImGui::CollapsingHeader("Node3D", ImGuiTreeNodeFlags_DefaultOpen))
+            return;
+
         property("Position", &Node::getPosition3D, &Node::setPosition3D, getOwner());
         property("Rotation", &Node::getRotation3D, &Node::setRotation3D, getOwner());
         
@@ -26,5 +29,12 @@ namespace CCImEditor
         property("Visible", &Node::isVisible, &Node::setVisible, getOwner());
         property("CastShadow", &Node::getCastShadow, &Node::setCastShadow, getOwner());
         property("RecieveShadow", &Node::getRecieveShadow, &Node::setRecieveShadow, getOwner());
+
+        property<Mask<CameraFlag>>("CameraMask", &Node::getCameraMask,
+        [] (Node* node, unsigned short cameraMask)
+        {
+            cameraMask |= (1 << 15);
+            node->setCameraMask(cameraMask);
+        }, getOwner());
     }
 }
