@@ -7,6 +7,11 @@
 
 namespace CCImEditor
 {
+    namespace Internal
+    {
+        struct DefaultArgumentTag {};
+    }
+    
     class NodeImDrawer : public cocos2d::Component
     {
     public:
@@ -51,43 +56,19 @@ namespace CCImEditor
             }
         }
 
-        template <class Getter, class Setter, class Object, class... Args>
+        template <class DrawerType = Internal::DefaultArgumentTag, class Getter, class Setter, class Object, class... Args>
         void property(const char *label, Getter &&getter, Setter &&setter, Object&& object, Args &&...args)
         {
             using PropertyTypeMaybeQualified = typename invoke_hpp::invoke_result_t<decltype(getter), Object>;
             using PropertyType = typename std::remove_cv<std::remove_reference<PropertyTypeMaybeQualified>::type>::type;
-            if (_context == Context::DRAW)
-            {
-                auto v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
-                if (PropertyImDrawer<PropertyType>::draw(label, v, std::forward<Args>(args)...))
-                {
-                    invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
-                }
-            }
-            else if (_context == Context::SERIALIZE)
-            {
-                const auto& v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
-                PropertyImDrawer<PropertyType>::serialize(*_contextValue, label, v);
-            }
-            else if (_context == Context::DESERIALIZE)
-            {
-                PropertyType v;
-                if (PropertyImDrawer<PropertyType>::deserialize(*_contextValue, label, v))
-                {
-                    invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
-                }
-            }
-        }
 
-        template <class DrawerType, class Getter, class Setter, class Object, class... Args>
-        void property(const char *label, Getter &&getter, Setter &&setter, Object&& object, Args &&...args)
-        {
-            using PropertyTypeMaybeQualified = typename invoke_hpp::invoke_result_t<decltype(getter), Object>;
-            using PropertyType = typename std::remove_cv<std::remove_reference<PropertyTypeMaybeQualified>::type>::type;
+            // use PropertyType if DrawerType is not specified
+            using PropertyOrDrawerType = typename std::conditional<std::is_same<DrawerType, Internal::DefaultArgumentTag>::value, PropertyType, DrawerType>::type;
+                                          
             if (_context == Context::DRAW)
             {
                 auto v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
-                if (PropertyImDrawer<DrawerType>::draw(label, v, std::forward<Args>(args)...))
+                if (PropertyImDrawer<PropertyOrDrawerType>::draw(label, v, std::forward<Args>(args)...))
                 {
                     invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
                 }
@@ -95,12 +76,12 @@ namespace CCImEditor
             else if (_context == Context::SERIALIZE)
             {
                 const auto& v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
-                PropertyImDrawer<DrawerType>::serialize(*_contextValue, label, v);
+                PropertyImDrawer<PropertyOrDrawerType>::serialize(*_contextValue, label, v);
             }
             else if (_context == Context::DESERIALIZE)
             {
                 PropertyType v;
-                if (PropertyImDrawer<DrawerType>::deserialize(*_contextValue, label, v))
+                if (PropertyImDrawer<PropertyOrDrawerType>::deserialize(*_contextValue, label, v))
                 {
                     invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
                 }
