@@ -43,15 +43,25 @@ namespace CCImEditor
             }
             else if (_context == Context::SERIALIZE)
             {
+                if (const char* p = strstr(label, "###"))
+                    label = p + 3;
+
                 const cocos2d::Value& v = _customValue[label];
-                PropertyImDrawer<PropertyType>::serialize(*_contextValue, label, v);
+                PropertyImDrawer<PropertyType>::serialize((*_contextValue)[label], v);
             }
             else if (_context == Context::DESERIALIZE)
             {
-                cocos2d::Value& v = _customValue[label];
-                if (PropertyImDrawer<PropertyType>::deserialize(*_contextValue, label, v))
+                if (const char* p = strstr(label, "###"))
+                    label = p + 3;
+
+                cocos2d::ValueMap::const_iterator it = _contextValue->find(label);
+                if (it != _contextValue->end())
                 {
-                    invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                    cocos2d::Value& v = _customValue[label];
+                    if (PropertyImDrawer<PropertyType>::deserialize(it->second, v))
+                    {
+                        invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                    }
                 }
             }
         }
@@ -79,17 +89,21 @@ namespace CCImEditor
                     label = p + 3;
                     
                 const auto& v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
-                PropertyImDrawer<PropertyOrDrawerType>::serialize(*_contextValue, label, v);
+                PropertyImDrawer<PropertyOrDrawerType>::serialize((*_contextValue)[label], v);
             }
             else if (_context == Context::DESERIALIZE)
             {
                 if (const char* p = strstr(label, "###"))
                     label = p + 3;
-                    
-                PropertyType v;
-                if (PropertyImDrawer<PropertyOrDrawerType>::deserialize(*_contextValue, label, v))
+
+                cocos2d::ValueMap::const_iterator it = _contextValue->find(label);
+                if (it != _contextValue->end())
                 {
-                    invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                    PropertyType v;
+                    if (PropertyImDrawer<PropertyOrDrawerType>::deserialize(it->second, v))
+                    {
+                        invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                    }
                 }
             }
         }

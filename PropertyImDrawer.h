@@ -17,13 +17,13 @@ namespace CCImEditor
             return false;
         }
 
-        static bool serialize(cocos2d::ValueMap& target, const char* label, ...)
+        static bool serialize(cocos2d::Value& target, ...)
         {
             CCLOGWARN("Can't serialize property: %s, missing specialization", label);
             return false;
         }
 
-        static bool deserialize(const cocos2d::ValueMap& source, const char* label, ...)
+        static bool deserialize(const cocos2d::Value& source, ...)
         {
             CCLOGWARN("Can't deserialize property: %s, missing specialization", label);
             return false;
@@ -36,20 +36,14 @@ namespace CCImEditor
             return ImGui::Checkbox(label, &v);
         }
 
-        static bool serialize(cocos2d::ValueMap& target, const char* label, bool v) {
-            target.emplace(label, v);
+        static bool serialize(cocos2d::Value& target, bool v) {
+            target = v;
             return true;
         }
 
-        static bool deserialize(const cocos2d::ValueMap& source, const char* label, bool& v) {
-            cocos2d::ValueMap::const_iterator it = source.find(label);
-            if (it != source.end())
-            {
-                v = it->second.asBool();
-                return true;
-            }
-            
-            return false;
+        static bool deserialize(const cocos2d::Value& source, bool& v) {
+            v = source.asBool();
+            return true;
         }
     };
     
@@ -65,27 +59,21 @@ namespace CCImEditor
             return false;
         }
 
-        static bool serialize(cocos2d::ValueMap& target, const char* label, const cocos2d::Vec3& vec) {
+        static bool serialize(cocos2d::Value& target, const cocos2d::Vec3& vec) {
             cocos2d::ValueVector v;
             v.push_back(cocos2d::Value(vec.x));
             v.push_back(cocos2d::Value(vec.y));
             v.push_back(cocos2d::Value(vec.z));
-            target.emplace(label, v);
+            target = v;
             return true;
         }
 
-        static bool deserialize(const cocos2d::ValueMap& source, const char* label, cocos2d::Vec3& vec) {
-            cocos2d::ValueMap::const_iterator it = source.find(label);
-            if (it != source.end())
-            {
-                const cocos2d::ValueVector& v = it->second.asValueVector();
-                vec.x = v[0].asFloat();
-                vec.y = v[1].asFloat();
-                vec.z = v[2].asFloat();
-                return true;
-            }
-            
-            return false;
+        static bool deserialize(const cocos2d::Value& source, cocos2d::Vec3& vec) {
+            const cocos2d::ValueVector& v = source.asValueVector();
+            vec.x = v[0].asFloat();
+            vec.y = v[1].asFloat();
+            vec.z = v[2].asFloat();
+            return true;
         }
     };
 
@@ -110,20 +98,14 @@ namespace CCImEditor
             return false;
         }
 
-        static bool serialize(cocos2d::ValueMap& target, const char* label, const cocos2d::Value& filePath) {
-            target.emplace(label, filePath);
+        static bool serialize(cocos2d::Value& target, const cocos2d::Value& filePath) {
+            target = filePath;
             return true;
         }
 
-        static bool deserialize(const cocos2d::ValueMap& source, const char* label, cocos2d::Value& filePath) {
-            cocos2d::ValueMap::const_iterator it = source.find(label);
-            if (it != source.end())
-            {
-                filePath = it->second;
-                return true;
-            }
-            
-            return false;
+        static bool deserialize(const cocos2d::Value& source, cocos2d::Value& filePath) {
+            filePath = source;
+            return true;
         }
     };
 
@@ -191,20 +173,14 @@ namespace CCImEditor
             return valueChanged;
         }
 
-        static bool serialize(cocos2d::ValueMap& target, const char* label, typename T::Type::MaskType mask) {
-            target.emplace(label, mask);
+        static bool serialize(cocos2d::Value& target, typename T::Type::MaskType mask) {
+            target = mask;
             return true;
         }
 
-        static bool deserialize(const cocos2d::ValueMap& source, const char* label, typename T::Type::MaskType& mask) {
-            cocos2d::ValueMap::const_iterator it = source.find(label);
-            if (it != source.end())
-            {
-                mask = it->second.asUnsignedInt();
-                return true;
-            }
-            
-            return false;
+        static bool deserialize(const cocos2d::Value& source, typename T::Type::MaskType& mask) {
+            mask = source.asUnsignedInt();
+            return true;
         }
     };
 
