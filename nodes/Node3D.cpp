@@ -27,10 +27,10 @@ namespace CCImEditor
         getOwner(), 0.01f);
 
         property("Visible", &Node::isVisible, &Node::setVisible, getOwner());
-        property("CastShadow", &Node::getCastShadow, &Node::setCastShadow, getOwner());
-        property("RecieveShadow", &Node::getRecieveShadow, &Node::setRecieveShadow, getOwner());
+        property("Cast Shadow###CastShadow", &Node::getCastShadow, &Node::setCastShadow, getOwner());
+        property("Recieve Shadow###RecieveShadow", &Node::getRecieveShadow, &Node::setRecieveShadow, getOwner());
 
-        property<Mask<CameraFlag>>("CameraMask", &Node::getCameraMask,
+        property<Mask<CameraFlag>>("Camera Mask###CameraMask", &Node::getCameraMask,
         [] (Node* node, unsigned short cameraMask)
         {
             cameraMask |= (1 << 15);

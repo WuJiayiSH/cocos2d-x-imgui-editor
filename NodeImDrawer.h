@@ -75,11 +75,17 @@ namespace CCImEditor
             }
             else if (_context == Context::SERIALIZE)
             {
+                if (const char* p = strstr(label, "###"))
+                    label = p + 3;
+                    
                 const auto& v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
                 PropertyImDrawer<PropertyOrDrawerType>::serialize(*_contextValue, label, v);
             }
             else if (_context == Context::DESERIALIZE)
             {
+                if (const char* p = strstr(label, "###"))
+                    label = p + 3;
+                    
                 PropertyType v;
                 if (PropertyImDrawer<PropertyOrDrawerType>::deserialize(*_contextValue, label, v))
                 {
