@@ -22,6 +22,7 @@ file(GLOB_RECURSE SOURCE
     ${CMAKE_CURRENT_LIST_DIR}/NodeImDrawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Widget.cpp
     ${CMAKE_CURRENT_LIST_DIR}/WidgetFactory.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/nodes/Node2D.cpp
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Node3D.cpp
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Sprite3D.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/ImGuiDemo.cpp
@@ -38,6 +39,7 @@ file(GLOB_RECURSE HEADER
     ${CMAKE_CURRENT_LIST_DIR}/PropertyImDrawer.h
     ${CMAKE_CURRENT_LIST_DIR}/Widget.h
     ${CMAKE_CURRENT_LIST_DIR}/WidgetFactory.h
+    ${CMAKE_CURRENT_LIST_DIR}/nodes/Node2D.h
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Node3D.h
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Sprite3D.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/ImGuiDemo.h

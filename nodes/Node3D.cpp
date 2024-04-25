@@ -10,6 +10,8 @@ namespace CCImEditor
         if (_context == Context::DRAW && !ImGui::CollapsingHeader("Node3D", ImGuiTreeNodeFlags_DefaultOpen))
             return;
 
+        property("Name", &Node::getName, &Node::setName, getOwner());
+
         property("Position", &Node::getPosition3D, &Node::setPosition3D, getOwner());
         property("Rotation", &Node::getRotation3D, &Node::setRotation3D, getOwner());
         
@@ -26,6 +28,7 @@ namespace CCImEditor
         },
         getOwner(), 0.01f);
 
+        property("Tag", &Node::getTag, &Node::setTag, getOwner());
         property("Visible", &Node::isVisible, &Node::setVisible, getOwner());
         property("Cast Shadow###CastShadow", &Node::getCastShadow, &Node::setCastShadow, getOwner());
         property("Recieve Shadow###RecieveShadow", &Node::getRecieveShadow, &Node::setRecieveShadow, getOwner());
