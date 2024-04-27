@@ -27,6 +27,7 @@ namespace CCImEditor
         void serialize(cocos2d::ValueMap&);
         void deserialize(const cocos2d::ValueMap&);
         const std::string& getTypeName() const {return _typeName;}
+        const std::string& getShortName() const {return _shortName;}
         bool init() override;
 
     protected:
@@ -113,6 +114,7 @@ namespace CCImEditor
 
     private:
         std::string _typeName;
+        std::string _shortName;
         cocos2d::ValueMap* _contextValue = nullptr;
         cocos2d::ValueMap _customValue;
     };

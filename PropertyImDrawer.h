@@ -327,8 +327,48 @@ namespace CCImEditor
         }
     };
 
+    template <typename T>
+    struct PropertyImDrawer<T, typename std::enable_if<std::is_base_of<Internal::EnumBase, T>::value>::type> {
+        static_assert(IM_ARRAYSIZE(T::Type::s_names) == IM_ARRAYSIZE(T::Type::s_values), "Size of enum names and values do not match");
+
+        static bool draw(const char* label, typename T::Type::EnumType& v) {
+            bool valueChanged = false;
+            auto it = std::find(std::begin(T::Type::s_values), std::end(T::Type::s_values), (decltype(*T::Type::s_values))v);
+            const int i = std::distance(T::Type::s_values, it);
+            if (ImGui::BeginCombo(label, i >= 0 && i < IM_ARRAYSIZE(T::Type::s_names) ? T::Type::s_names[i] : nullptr))
+            {
+                for (int j = 0; j < IM_ARRAYSIZE(T::Type::s_names); j++)
+                {
+                    bool selected = i == j;
+                    if (ImGui::Selectable(T::Type::s_names[j], &selected))
+                    {
+                        v = static_cast<T::Type::EnumType>(T::Type::s_values[j]);
+                        valueChanged = true;
+                    }
+
+                    if (selected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+
+            return valueChanged;
+        }
+
+        static bool serialize(cocos2d::Value& target, typename T::Type::EnumType v) {
+            target = static_cast<int>(v);
+            return true;
+        }
+
+        static bool deserialize(const cocos2d::Value& source, typename T::Type::EnumType& v) {
+            v = static_cast<T::Type::EnumType>(source.asInt());
+            return true;
+        }
+    };
+
     struct LightFlag {
         using MaskType = typename unsigned int;
+        using EnumType = typename cocos2d::LightFlag;
         static constexpr const char* s_names[] = {
             "LIGHT0",
             "LIGHT1",
@@ -392,6 +432,23 @@ namespace CCImEditor
             (int)cocos2d::CameraFlag::USER6,
             (int)cocos2d::CameraFlag::USER7,
             (int)cocos2d::CameraFlag::USER8,
+        };
+    };
+
+    struct ShadowSize {
+        using EnumType = typename cocos2d::ShadowSize;
+        static constexpr const char* s_names[] = {
+            "Low_256x256",
+            "Medium_512x512",
+            "High_1024x1024",
+            "Ultra_2048x2048",
+        };
+
+        static constexpr int s_values[] = {
+            (int)cocos2d::ShadowSize::Low_256x256,
+            (int)cocos2d::ShadowSize::Medium_512x512,
+            (int)cocos2d::ShadowSize::High_1024x1024,
+            (int)cocos2d::ShadowSize::Ultra_2048x2048,
         };
     };
 }
