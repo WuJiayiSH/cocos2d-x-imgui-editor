@@ -169,6 +169,38 @@ namespace CCImEditor
     };
 
     template <>
+    struct PropertyImDrawer<cocos2d::Color3B> {
+        static bool draw(const char* label, cocos2d::Color3B& color, ImGuiColorEditFlags flags = 0) {
+            float v[3] = { color.r / 255.0f, color.g / 255.0f, color.b / 255.0f };
+            if (ImGui::ColorEdit3(label, v, flags))
+            {
+                color.r = static_cast<GLubyte>(v[0] * 255.0f);
+                color.g = static_cast<GLubyte>(v[1] * 255.0f);
+                color.b = static_cast<GLubyte>(v[2] * 255.0f);
+                return true;
+            }
+            return false;
+        }
+
+        static bool serialize(cocos2d::Value& target, const cocos2d::Color3B& color) {
+            cocos2d::ValueVector v;
+            v.push_back(cocos2d::Value(color.r));
+            v.push_back(cocos2d::Value(color.g));
+            v.push_back(cocos2d::Value(color.b));
+            target = std::move(v);
+            return true;
+        }
+
+        static bool deserialize(const cocos2d::Value& source, cocos2d::Color3B& color) {
+            const cocos2d::ValueVector& v = source.asValueVector();
+            color.r = v[0].asByte();
+            color.g = v[1].asByte();
+            color.b = v[2].asByte();
+            return true;
+        }
+    };
+
+    template <>
     struct PropertyImDrawer<cocos2d::Color4B> {
         static bool draw(const char* label, cocos2d::Color4B& color, ImGuiColorEditFlags flags = 0) {
             float v[4] = { color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f };

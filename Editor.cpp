@@ -362,6 +362,15 @@ namespace CCImEditor
                 return cocos2d::PointLight::create(cocos2d::Vec3::ZERO, cocos2d::Color3B::WHITE, 1.0f);
             }
         };
+
+        class AmbientLightProxy
+        {
+        public:
+            static cocos2d::AmbientLight* create()
+            {
+                return cocos2d::AmbientLight::create(cocos2d::Color3B::WHITE);
+            }
+        };
     }
 
     Editor::Editor()
@@ -544,6 +553,7 @@ namespace CCImEditor
         NodeFactory::getInstance()->registerNode<Sprite3D, cocos2d::Sprite3D>("CCImEditor.Sprite3D", "3D/Sprite3D");
         NodeFactory::getInstance()->registerNode<DirectionLight, DirectionLightProxy>("CCImEditor.DirectionLight", "3D/Direction Light");
         NodeFactory::getInstance()->registerNode<PointLight, PointLightProxy>("CCImEditor.PointLight", "3D/Point Light");
+        NodeFactory::getInstance()->registerNode<BaseLight, AmbientLightProxy>("CCImEditor.AmbientLight", "3D/Ambient Light");
     }
 
     void Editor::visit(cocos2d::Renderer *renderer, const cocos2d::Mat4 &parentTransform, uint32_t parentFlags)
