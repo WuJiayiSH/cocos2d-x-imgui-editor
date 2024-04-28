@@ -13,6 +13,7 @@
 #include "nodes/Sprite3D.h"
 #include "nodes/Node2D.h"
 #include "nodes/Sprite.h"
+#include "nodes/Label.h"
 #include "nodes/DirectionLight.h"
 #include "nodes/PointLight.h"
 #include "nodes/SpotLight.h"
@@ -601,6 +602,7 @@ namespace CCImEditor
     {
         NodeFactory::getInstance()->registerNode<Node2D, cocos2d::Node>("CCImEditor.Node2D", "2D/Node2D", NodeFlags_CanHaveChildren | NodeFlags_CanBeRoot);
         NodeFactory::getInstance()->registerNode<Sprite, cocos2d::Sprite>("CCImEditor.Sprite", "2D/Sprite");
+        NodeFactory::getInstance()->registerNode<Label, cocos2d::Label>("CCImEditor.Label", "2D/Label");
 
         NodeFactory::getInstance()->registerNode<Node3D, cocos2d::Node>("CCImEditor.Node3D", "3D/Node3D", NodeFlags_CanHaveChildren | NodeFlags_CanBeRoot);
         NodeFactory::getInstance()->registerNode<Sprite3D, cocos2d::Sprite3D>("CCImEditor.Sprite3D", "3D/Sprite3D");

@@ -30,6 +30,7 @@ file(GLOB_RECURSE SOURCE
     ${CMAKE_CURRENT_LIST_DIR}/nodes/PointLight.cpp
     ${CMAKE_CURRENT_LIST_DIR}/nodes/SpotLight.cpp
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Sprite.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/nodes/Label.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/ImGuiDemo.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeTree.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeProperties.cpp
@@ -52,6 +53,7 @@ file(GLOB_RECURSE HEADER
     ${CMAKE_CURRENT_LIST_DIR}/nodes/PointLight.h
     ${CMAKE_CURRENT_LIST_DIR}/nodes/SpotLight.h
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Sprite.h
+    ${CMAKE_CURRENT_LIST_DIR}/nodes/Label.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/ImGuiDemo.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeTree.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeProperties.h

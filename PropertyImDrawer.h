@@ -537,6 +537,53 @@ namespace CCImEditor
             GL_ONE_MINUS_DST_ALPHA
         };
     };
+
+    struct TextVAlignment {
+        using EnumType = typename cocos2d::TextVAlignment;
+        static constexpr const char* s_names[] = {
+            "TOP",
+            "CENTER",
+            "BOTTOM"
+        };
+
+        static constexpr int s_values[] = {
+            (int)cocos2d::TextVAlignment::TOP,
+            (int)cocos2d::TextVAlignment::CENTER,
+            (int)cocos2d::TextVAlignment::BOTTOM
+        };
+    };
+
+    struct TextHAlignment {
+        using EnumType = typename cocos2d::TextHAlignment;
+        static constexpr const char* s_names[] = {
+            "LEFT",
+            "CENTER",
+            "RIGHT"
+        };
+
+        static constexpr int s_values[] = {
+            (int)cocos2d::TextHAlignment::LEFT,
+            (int)cocos2d::TextHAlignment::CENTER,
+            (int)cocos2d::TextHAlignment::RIGHT
+        };
+    };
+
+    struct LabelOverflow {
+        using EnumType = typename cocos2d::Label::Overflow;
+        static constexpr const char* s_names[] = {
+            "NONE",
+            "CLAMP",
+            "SHRINK",
+            "RESIZE_HEIGHT",
+        };
+
+        static constexpr int s_values[] = {
+            (int)cocos2d::Label::Overflow::NONE,
+            (int)cocos2d::Label::Overflow::CLAMP,
+            (int)cocos2d::Label::Overflow::SHRINK,
+            (int)cocos2d::Label::Overflow::RESIZE_HEIGHT
+        };
+    };
 }
 
 #endif
