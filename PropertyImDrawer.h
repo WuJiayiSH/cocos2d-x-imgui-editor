@@ -508,6 +508,35 @@ namespace CCImEditor
             (int)cocos2d::ShadowSize::Ultra_2048x2048,
         };
     };
+
+    struct BlendSrcDst {
+        using EnumType = typename GLenum;
+        static constexpr const char* s_names[] = {
+            "GL_ZERO",
+            "GL_ONE",
+            "GL_SRC_COLOR",
+            "GL_ONE_MINUS_SRC_COLOR",
+            "GL_SRC_ALPHA",
+            "GL_ONE_MINUS_SRC_ALPHA",
+            "GL_DST_COLOR",
+            "GL_ONE_MINUS_DST_COLOR",
+            "GL_DST_ALPHA",
+            "GL_ONE_MINUS_DST_ALPHA"
+        };
+
+        static constexpr int s_values[] = {
+            GL_ZERO,
+            GL_ONE,
+            GL_SRC_COLOR,
+            GL_ONE_MINUS_SRC_COLOR,
+            GL_SRC_ALPHA,
+            GL_ONE_MINUS_SRC_ALPHA,
+            GL_DST_COLOR,
+            GL_ONE_MINUS_DST_COLOR,
+            GL_DST_ALPHA,
+            GL_ONE_MINUS_DST_ALPHA
+        };
+    };
 }
 
 #endif
