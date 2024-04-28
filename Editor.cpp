@@ -220,6 +220,39 @@ namespace CCImEditor
                     }
 
                     ImGui::Separator();
+                    if (ImGui::BeginMenu("Preferences"))
+                    {
+                        if (ImGui::BeginMenu("Style"))
+                        {
+                            const int style = cocos2d::UserDefault::getInstance()->getIntegerForKey("cc_imgui_editor.style", 0);
+                            bool selected = style == 0;
+                            if (ImGui::Checkbox("Dark", &selected))
+                            {
+                                ImGui::StyleColorsDark();
+                                cocos2d::UserDefault::getInstance()->setIntegerForKey("cc_imgui_editor.style", 0);
+                            }
+
+                            selected = style == 1;
+                            if (ImGui::Checkbox("Light", &selected))
+                            {
+                                ImGui::StyleColorsLight();
+                                cocos2d::UserDefault::getInstance()->setIntegerForKey("cc_imgui_editor.style", 1);
+                            }
+
+                            selected = style == 2;
+                            if (ImGui::Checkbox("Classic", &selected))
+                            {
+                                ImGui::StyleColorsClassic();
+                                cocos2d::UserDefault::getInstance()->setIntegerForKey("cc_imgui_editor.style", 2);
+                            }
+
+                            ImGui::EndMenu();
+                        }
+
+                        ImGui::EndMenu();
+                    }
+
+                    ImGui::Separator();
                     if (ImGui::MenuItem("Exit"))
                     {
                         cocos2d::Director::getInstance()->end();
@@ -412,6 +445,14 @@ namespace CCImEditor
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+        const int style = cocos2d::UserDefault::getInstance()->getIntegerForKey("cc_imgui_editor.style", 0);
+        switch (style)
+        {
+            case 0: ImGui::StyleColorsDark(); break;
+            case 1: ImGui::StyleColorsLight(); break;
+            case 2: ImGui::StyleColorsClassic(); break;
+        }
+        
         setName("Editor");
         return true;
     }
