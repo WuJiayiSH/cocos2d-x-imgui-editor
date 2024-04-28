@@ -82,6 +82,31 @@ namespace CCImEditor
         }
     };
 
+    struct Degrees {};
+    template <>
+    struct PropertyImDrawer<Degrees> {
+        static bool draw(const char* label, float& v, float v_speed = 1.0f, float v_min = 0.0f, float v_max = 0.0f, const char* format = "%.3f", ImGuiSliderFlags flags = 0) {
+            float degree = CC_RADIANS_TO_DEGREES(v);
+            if (ImGui::DragFloat(label, &degree, v_speed, v_min,  v_max, format, flags))
+            {
+                v = CC_DEGREES_TO_RADIANS(degree);
+                return true;
+            }
+
+            return false;
+        }
+
+        static bool serialize(cocos2d::Value& target, float v) {
+            target = v;
+            return true;
+        }
+
+        static bool deserialize(const cocos2d::Value& source, float& v) {
+            v = source.asFloat();
+            return true;
+        }
+    };
+
     template <>
     struct PropertyImDrawer<cocos2d::Vec2> {
         static bool draw(const char* label, cocos2d::Vec2& vec, float v_speed = 1.0f, float v_min = 0.0f, float v_max = 0.0f, const char* format = "%.3f", ImGuiSliderFlags flags = 0) {

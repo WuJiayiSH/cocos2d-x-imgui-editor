@@ -14,6 +14,7 @@
 #include "nodes/Node2D.h"
 #include "nodes/DirectionLight.h"
 #include "nodes/PointLight.h"
+#include "nodes/SpotLight.h"
 #include "FileDialog.h"
 
 namespace CCImEditor
@@ -371,6 +372,15 @@ namespace CCImEditor
                 return cocos2d::AmbientLight::create(cocos2d::Color3B::WHITE);
             }
         };
+
+        class SpotLightProxy
+        {
+        public:
+            static cocos2d::SpotLight* create()
+            {
+                return cocos2d::SpotLight::create(cocos2d::Vec3::UNIT_Z, cocos2d::Vec3::ZERO, cocos2d::Color3B::WHITE, 0.0f, CC_DEGREES_TO_RADIANS(30), 5000.0f);
+            }
+        };
     }
 
     Editor::Editor()
@@ -551,9 +561,10 @@ namespace CCImEditor
 
         NodeFactory::getInstance()->registerNode<Node3D, cocos2d::Node>("CCImEditor.Node3D", "3D/Node3D", NodeFlags_CanHaveChildren | NodeFlags_CanBeRoot);
         NodeFactory::getInstance()->registerNode<Sprite3D, cocos2d::Sprite3D>("CCImEditor.Sprite3D", "3D/Sprite3D");
-        NodeFactory::getInstance()->registerNode<DirectionLight, DirectionLightProxy>("CCImEditor.DirectionLight", "3D/Direction Light");
-        NodeFactory::getInstance()->registerNode<PointLight, PointLightProxy>("CCImEditor.PointLight", "3D/Point Light");
-        NodeFactory::getInstance()->registerNode<BaseLight, AmbientLightProxy>("CCImEditor.AmbientLight", "3D/Ambient Light");
+        NodeFactory::getInstance()->registerNode<DirectionLight, DirectionLightProxy>("CCImEditor.DirectionLight", "3D/Light/Direction Light");
+        NodeFactory::getInstance()->registerNode<PointLight, PointLightProxy>("CCImEditor.PointLight", "3D/Light/Point Light");
+        NodeFactory::getInstance()->registerNode<BaseLight, AmbientLightProxy>("CCImEditor.AmbientLight", "3D/Light/Ambient Light");
+        NodeFactory::getInstance()->registerNode<SpotLight, SpotLightProxy>("CCImEditor.SpotLight", "3D/Light/Spot Light");
     }
 
     void Editor::visit(cocos2d::Renderer *renderer, const cocos2d::Mat4 &parentTransform, uint32_t parentFlags)
