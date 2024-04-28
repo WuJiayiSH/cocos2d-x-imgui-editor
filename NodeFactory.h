@@ -45,7 +45,7 @@ namespace CCImEditor
         template <typename NodeImDrawerType, typename OwnerType>
         void registerNode(const char* name, const char* displayName, uint32_t mask = 0)
         {
-            std::function<cocos2d::Node*()> constructor = [name]() -> cocos2d::Node* {
+            std::function<cocos2d::Node*()> constructor = [name, displayName]() -> cocos2d::Node* {
                 auto owner = OwnerType::create();
                 if (!owner)
                     return nullptr;
@@ -54,11 +54,13 @@ namespace CCImEditor
                 if (!nodeImDrawer)
                     return nullptr;
 
-                std::string typeName = name;
-                ssize_t lastDot = typeName.find_last_of('.');
-                nodeImDrawer->_shortName = lastDot == std::string::npos ? typeName : typeName.substr(lastDot + 1);
-
-                nodeImDrawer->_typeName = std::move(typeName);
+                const char* shortName = displayName;
+                while(const char* tmp = strstr(shortName, "/"))
+                {
+                    shortName = tmp + 1;
+                }
+                nodeImDrawer->_shortName = shortName;
+                nodeImDrawer->_typeName = name;
 
                 if (!nodeImDrawer->init())
                 {

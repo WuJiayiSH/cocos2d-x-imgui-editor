@@ -13,6 +13,7 @@
 #include "nodes/Sprite3D.h"
 #include "nodes/Node2D.h"
 #include "nodes/DirectionLight.h"
+#include "nodes/PointLight.h"
 #include "FileDialog.h"
 
 namespace CCImEditor
@@ -352,6 +353,15 @@ namespace CCImEditor
                 return cocos2d::DirectionLight::create(cocos2d::Vec3::UNIT_Z, cocos2d::Color3B::WHITE);
             }
         };
+
+        class PointLightProxy
+        {
+        public:
+            static cocos2d::PointLight* create()
+            {
+                return cocos2d::PointLight::create(cocos2d::Vec3::ZERO, cocos2d::Color3B::WHITE, 1.0f);
+            }
+        };
     }
 
     Editor::Editor()
@@ -533,6 +543,7 @@ namespace CCImEditor
         NodeFactory::getInstance()->registerNode<Node3D, cocos2d::Node>("CCImEditor.Node3D", "3D/Node3D", NodeFlags_CanHaveChildren | NodeFlags_CanBeRoot);
         NodeFactory::getInstance()->registerNode<Sprite3D, cocos2d::Sprite3D>("CCImEditor.Sprite3D", "3D/Sprite3D");
         NodeFactory::getInstance()->registerNode<DirectionLight, DirectionLightProxy>("CCImEditor.DirectionLight", "3D/Direction Light");
+        NodeFactory::getInstance()->registerNode<PointLight, PointLightProxy>("CCImEditor.PointLight", "3D/Point Light");
     }
 
     void Editor::visit(cocos2d::Renderer *renderer, const cocos2d::Mat4 &parentTransform, uint32_t parentFlags)

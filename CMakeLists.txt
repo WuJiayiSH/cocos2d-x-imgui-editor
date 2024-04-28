@@ -27,6 +27,7 @@ file(GLOB_RECURSE SOURCE
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Sprite3D.cpp
     ${CMAKE_CURRENT_LIST_DIR}/nodes/BaseLight.cpp
     ${CMAKE_CURRENT_LIST_DIR}/nodes/DirectionLight.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/nodes/PointLight.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/ImGuiDemo.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeTree.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeProperties.cpp
@@ -46,6 +47,7 @@ file(GLOB_RECURSE HEADER
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Sprite3D.h
     ${CMAKE_CURRENT_LIST_DIR}/nodes/BaseLight.h
     ${CMAKE_CURRENT_LIST_DIR}/nodes/DirectionLight.h
+    ${CMAKE_CURRENT_LIST_DIR}/nodes/PointLight.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/ImGuiDemo.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeTree.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeProperties.h
