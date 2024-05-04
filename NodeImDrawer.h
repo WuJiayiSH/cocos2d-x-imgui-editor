@@ -40,20 +40,25 @@ namespace CCImEditor
 
             // use PropertyType if DrawerType is not specified
             using PropertyOrDrawerType = typename std::conditional<std::is_same<DrawerType, Internal::DefaultArgumentTag>::value, PropertyType, DrawerType>::type;
-            
+
             // TODO: FilePath generate special undo/redo command. It should be handled more generically in the future.
             constexpr bool isFilePath = std::is_same<DrawerType, FilePath>::value;
             if (_context == Context::DRAW)
             {
+                // object is always valid for undo/redo. It will be retained if it is removed form scene by a command.
+                // object is wrapped up here by a weakptr to guarantee it crashes if it is not the case.
+                using ObjectType = typename std::remove_pointer<std::remove_cv<std::remove_reference<Object>::type>::type>::type;
+
                 auto v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
                 if (PropertyImDrawer<PropertyOrDrawerType>::draw(label, v, std::forward<Args>(args)...))
                 {
                     if (isFilePath)
                     {
                         auto v0 = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
+                        cocos2d::WeakPtr<ObjectType> weak = object;
                         CustomCommand* cmd = CustomCommand::create(
-                            std::bind(std::forward<Setter>(setter), std::forward<Object>(object), v),
-                            std::bind(std::forward<Setter>(setter), std::forward<Object>(object), v0)
+                            std::bind(std::forward<Setter>(setter), weak, v),
+                            std::bind(std::forward<Setter>(setter), weak, v0)
                         );
                         Editor::getInstance()->getCommandHistory().queue(cmd); // the cmd will execute the setter
                     }
@@ -62,7 +67,8 @@ namespace CCImEditor
                         if (!_undo)
                         {
                             auto v0 = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
-                            _undo = std::bind(std::forward<Setter>(setter), std::forward<Object>(object), v0);
+                            cocos2d::WeakPtr<ObjectType> weak = object;
+                            _undo = std::bind(std::forward<Setter>(setter), weak, v0);
                         }
 
                         invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
@@ -71,8 +77,9 @@ namespace CCImEditor
 
                 if (_undo && ImGui::IsItemDeactivated())
                 {
+                    cocos2d::WeakPtr<ObjectType> weak = object;
                     CustomCommand* cmd = CustomCommand::create(
-                        std::bind(std::forward<Setter>(setter), std::forward<Object>(object), v),
+                        std::bind(std::forward<Setter>(setter), weak, v),
                         _undo
                     );
                     Editor::getInstance()->getCommandHistory().queue(cmd, false);
