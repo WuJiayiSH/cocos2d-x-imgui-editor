@@ -23,10 +23,19 @@ namespace CCImEditor
         property<Enum<TextHAlignment>>("Horizontal Alignment###HAlign", &cocos2d::Label::getHorizontalAlignment, &cocos2d::Label::setHorizontalAlignment, owner);
         property<Enum<TextVAlignment>>("Vertical Alignment###VAlign", &cocos2d::Label::getVerticalAlignment, &cocos2d::Label::setVerticalAlignment, owner);
         
-        customProperty<FilePath>("Font Name###FontName", 
-        [] (cocos2d::Label* label, const cocos2d::Value& filePath)
+        property<FilePath>("Font Name###FontName", 
+        [this] (cocos2d::Label* label) -> std::string
         {
-            label->setSystemFontName(filePath.asString());
+            auto it = _customValue.find("FontName");
+            if (it != _customValue.end())
+                return it->second.asString();
+
+            return std::string();
+        }, 
+        [this] (cocos2d::Label* label, const std::string& filePath)
+        {
+            _customValue["FontName"] = filePath;
+            label->setSystemFontName(filePath);
         },
         owner);
         property("Font Size###FontSize", &cocos2d::Label::getSystemFontSize, &cocos2d::Label::setSystemFontSize, owner);

@@ -11,10 +11,19 @@ namespace CCImEditor
             return;
 
         cocos2d::Sprite* owner = static_cast<cocos2d::Sprite*>(getOwner());
-        customProperty<FilePath>("Texture", 
-        [] (cocos2d::Sprite* sprite, const cocos2d::Value& filePath)
+        property<FilePath>("Texture", 
+        [this] (cocos2d::Sprite* sprite) -> std::string
         {
-            sprite->setTexture(filePath.asString());
+            auto it = _customValue.find("Texture");
+            if (it != _customValue.end())
+                return it->second.asString();
+
+            return std::string();
+        },
+        [this] (cocos2d::Sprite* sprite, const std::string& filePath)
+        {
+            _customValue["Texture"] = filePath;
+            sprite->setTexture(filePath);
         },
         owner);
 

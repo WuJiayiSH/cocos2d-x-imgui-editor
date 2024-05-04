@@ -4,6 +4,7 @@
 #include "cocos2d.h"
 #include "invoke.hpp/invoke.hpp"
 #include "PropertyImDrawer.h"
+#include "commands/CustomCommand.h"
 
 namespace CCImEditor
 {
@@ -31,42 +32,6 @@ namespace CCImEditor
         bool init() override;
 
     protected:
-        template <class PropertyType, class Setter, class Object, class... Args>
-        void customProperty(const char *label, Setter &&setter, Object&& object, Args &&...args)
-        {
-            if (_context == Context::DRAW)
-            {
-                cocos2d::Value& v = _customValue[label];
-                if (PropertyImDrawer<PropertyType>::draw(label, v, std::forward<Args>(args)...))
-                {
-                    invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
-                }
-            }
-            else if (_context == Context::SERIALIZE)
-            {
-                if (const char* p = strstr(label, "###"))
-                    label = p + 3;
-
-                const cocos2d::Value& v = _customValue[label];
-                PropertyImDrawer<PropertyType>::serialize((*_contextValue)[label], v);
-            }
-            else if (_context == Context::DESERIALIZE)
-            {
-                if (const char* p = strstr(label, "###"))
-                    label = p + 3;
-
-                cocos2d::ValueMap::const_iterator it = _contextValue->find(label);
-                if (it != _contextValue->end())
-                {
-                    cocos2d::Value& v = _customValue[label];
-                    if (PropertyImDrawer<PropertyType>::deserialize(it->second, v))
-                    {
-                        invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
-                    }
-                }
-            }
-        }
-
         template <class DrawerType = Internal::DefaultArgumentTag, class Getter, class Setter, class Object, class... Args>
         void property(const char *label, Getter &&getter, Setter &&setter, Object&& object, Args &&...args)
         {
@@ -75,13 +40,43 @@ namespace CCImEditor
 
             // use PropertyType if DrawerType is not specified
             using PropertyOrDrawerType = typename std::conditional<std::is_same<DrawerType, Internal::DefaultArgumentTag>::value, PropertyType, DrawerType>::type;
-                                          
+            
+            // TODO: FilePath generate special undo/redo command. It should be handled more generically in the future.
+            constexpr bool isFilePath = std::is_same<DrawerType, FilePath>::value;
             if (_context == Context::DRAW)
             {
                 auto v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
                 if (PropertyImDrawer<PropertyOrDrawerType>::draw(label, v, std::forward<Args>(args)...))
                 {
-                    invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                    if (isFilePath)
+                    {
+                        auto v0 = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
+                        CustomCommand* cmd = CustomCommand::create(
+                            std::bind(std::forward<Setter>(setter), std::forward<Object>(object), v),
+                            std::bind(std::forward<Setter>(setter), std::forward<Object>(object), v0)
+                        );
+                        Editor::getInstance()->getCommandHistory().queue(cmd); // the cmd will execute the setter
+                    }
+                    else
+                    {
+                        if (!_undo)
+                        {
+                            auto v0 = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
+                            _undo = std::bind(std::forward<Setter>(setter), std::forward<Object>(object), v0);
+                        }
+
+                        invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                    }
+                }
+
+                if (_undo && ImGui::IsItemDeactivated())
+                {
+                    CustomCommand* cmd = CustomCommand::create(
+                        std::bind(std::forward<Setter>(setter), std::forward<Object>(object), v),
+                        _undo
+                    );
+                    Editor::getInstance()->getCommandHistory().queue(cmd, false);
+                    _undo = nullptr;
                 }
             }
             else if (_context == Context::SERIALIZE)
@@ -111,12 +106,13 @@ namespace CCImEditor
 
     protected:
         Context _context = Context::DRAW;
-
+        cocos2d::ValueMap _customValue;
+        
     private:
         std::string _typeName;
         std::string _shortName;
         cocos2d::ValueMap* _contextValue = nullptr;
-        cocos2d::ValueMap _customValue;
+        std::function<void()> _undo;
     };
 
    

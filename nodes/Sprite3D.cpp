@@ -11,18 +11,36 @@ namespace CCImEditor
             return;
 
         cocos2d::Sprite3D* owner = static_cast<cocos2d::Sprite3D*>(getOwner());
-        customProperty<FilePath>("Model", 
-        [] (cocos2d::Sprite3D* node, const cocos2d::Value& filePath)
+        property<FilePath>("Model", 
+        [this] (cocos2d::Sprite3D*) -> std::string
         {
+            auto it = _customValue.find("Model");
+            if (it != _customValue.end() )
+                return it->second.asString();
+
+            return std::string();
+        },
+        [this] (cocos2d::Sprite3D* node, const std::string& filePath)
+        {
+            _customValue["Model"] = filePath;
             node->removeAllChildren();
-            node->initWithFile(filePath.asString());
+            node->initWithFile(filePath);
         },
         owner);
 
-        customProperty<FilePath>("Texture", 
-        [] (cocos2d::Sprite3D* node, const cocos2d::Value& filePath)
+        property<FilePath>("Texture", 
+        [this] (cocos2d::Sprite3D*) -> std::string
         {
-            node->setTexture(filePath.asString());
+            auto it = _customValue.find("Texture");
+            if (it != _customValue.end())
+                return it->second.asString();
+
+            return std::string();
+        },
+        [this] (cocos2d::Sprite3D* node, const std::string& filePath)
+        {
+            _customValue["Texture"] = filePath;
+            node->setTexture(filePath);
         },
         owner);
 

@@ -280,31 +280,30 @@ namespace CCImEditor
     struct FilePath {};
     template <>
     struct PropertyImDrawer<FilePath> {
-        static bool draw(const char* label, cocos2d::Value& filePath) {
-            std::string v = filePath.asString();
-            // assume imgui does not modify the c string because of the read-only flag
-            ImGui::InputText(label, const_cast<char*>(v.c_str()), v.size(), ImGuiInputTextFlags_ReadOnly);
+        static bool draw(const char* label, std::string& filePath) {
+            ImGui::InputText(label, &filePath, ImGuiInputTextFlags_ReadOnly);
             if (ImGui::IsItemActivated())
             {
                 Editor::getInstance()->openLoadFileDialog();
             }
 
-            if (Editor::getInstance()->fileDialogResult(v) && !v.empty())
+            std::string tmp;
+            if (Editor::getInstance()->fileDialogResult(tmp) && !tmp.empty())
             {
-                filePath = v;
+                filePath = std::move(tmp);
                 return true;
             }
 
             return false;
         }
 
-        static bool serialize(cocos2d::Value& target, const cocos2d::Value& filePath) {
+        static bool serialize(cocos2d::Value& target, const std::string& filePath) {
             target = filePath;
             return true;
         }
 
-        static bool deserialize(const cocos2d::Value& source, cocos2d::Value& filePath) {
-            filePath = source;
+        static bool deserialize(const cocos2d::Value& source, std::string& filePath) {
+            filePath = source.asString();
             return true;
         }
     };

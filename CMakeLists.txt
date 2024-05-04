@@ -36,6 +36,10 @@ file(GLOB_RECURSE SOURCE
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeProperties.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/Viewport.cpp
     ${CMAKE_CURRENT_LIST_DIR}/FileDialog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/CommandHistory.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/commands/AddNode.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/commands/RemoveNode.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/commands/CustomCommand.cpp
 )
 file(GLOB_RECURSE HEADER
     ${CMAKE_CURRENT_LIST_DIR}/Editor.h
@@ -59,6 +63,11 @@ file(GLOB_RECURSE HEADER
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeProperties.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/Viewport.h
     ${CMAKE_CURRENT_LIST_DIR}/FileDialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/Command.h
+    ${CMAKE_CURRENT_LIST_DIR}/CommandHistory.h
+    ${CMAKE_CURRENT_LIST_DIR}/commands/AddNode.h
+    ${CMAKE_CURRENT_LIST_DIR}/commands/RemoveNode.h
+    ${CMAKE_CURRENT_LIST_DIR}/commands/CustomCommand.h
 )
 
 add_library(${LIB_NAME} STATIC ${SOURCE} ${HEADER})

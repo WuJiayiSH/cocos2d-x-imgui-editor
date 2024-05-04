@@ -4,6 +4,7 @@
 #include "cocos2d.h"
 
 #include "Widget.h"
+#include "CommandHistory.h"
 
 namespace CCImEditor
 {
@@ -39,7 +40,9 @@ namespace CCImEditor
         void copy();
         void cut();
         void paste();
-        
+
+        CommandHistory& getCommandHistory() { return _commandHistory; };
+    
     CC_CONSTRUCTOR_ACCESS: 
         Editor();
         ~Editor();
@@ -60,6 +63,8 @@ namespace CCImEditor
         cocos2d::CustomCommand _command;
 
         cocos2d::ValueMap _clipboardValue;
+
+        CommandHistory _commandHistory;
     };
 }
 

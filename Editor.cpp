@@ -17,6 +17,8 @@
 #include "nodes/DirectionLight.h"
 #include "nodes/PointLight.h"
 #include "nodes/SpotLight.h"
+#include "commands/AddNode.h"
+#include "commands/RemoveNode.h"
 #include "FileDialog.h"
 
 namespace CCImEditor
@@ -24,7 +26,6 @@ namespace CCImEditor
     namespace
     {
         static cocos2d::RefPtr<cocos2d::Node> s_nextEditingNode;
-        static cocos2d::RefPtr<cocos2d::Node> s_nextAddingNode;
         static std::function<void(std::string)> s_saveFileCallback;
         static std::function<void(std::string)> s_openFileCallback;
         static std::string s_currentFile;
@@ -92,27 +93,22 @@ namespace CCImEditor
             return true;
         }
 
-        bool deserializeNode(cocos2d::Node* parent, const cocos2d::ValueMap& source)
+        bool deserializeNode(cocos2d::Node** node, const cocos2d::ValueMap& source)
         {
             cocos2d::ValueMap::const_iterator typeIt = source.find("type");
             if (typeIt == source.end() || typeIt->second.getType() != cocos2d::Value::Type::STRING)
                 return false;
 
-            cocos2d::Node* node = NodeFactory::getInstance()->createNode(typeIt->second.asString());
-            if (!node)
+            *node = NodeFactory::getInstance()->createNode(typeIt->second.asString());
+            if (!*node)
                 return false;
 
             cocos2d::ValueMap::const_iterator propertiesIt = source.find("properties");
             if (propertiesIt != source.end() && propertiesIt->second.getType() == cocos2d::Value::Type::MAP)
             {
-                NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer"));
+                NodeImDrawer* drawer = static_cast<NodeImDrawer*>((*node)->getComponent("CCImEditor.NodeImDrawer"));
                 drawer->deserialize(propertiesIt->second.asValueMap());
             }
-
-            if (parent)
-                parent->addChild(node);
-            else
-                Editor::getInstance()->setEditingNode(node);
 
             cocos2d::ValueMap::const_iterator childrenIt = source.find("children");
             if (childrenIt != source.end() && childrenIt->second.getType() == cocos2d::Value::Type::VECTOR)
@@ -121,7 +117,13 @@ namespace CCImEditor
                 for (const cocos2d::Value& childVal: childrenVal)
                 {
                     if (childVal.getType() == cocos2d::Value::Type::MAP)
-                        deserializeNode(node, childVal.asValueMap());
+                    {
+                        cocos2d::Node* child = nullptr;
+                        if (deserializeNode(&child, childVal.asValueMap()))
+                        {
+                            (*node)->addChild(child);
+                        }
+                    }
                 }
             }
             
@@ -199,7 +201,11 @@ namespace CCImEditor
                         s_openFileCallback = [](const std::string file)
                         {
                             const cocos2d::ValueMap& source = cocos2d::FileUtils::getInstance()->getValueMapFromFile(file);
-                            deserializeNode(nullptr, source);
+                            cocos2d::Node* editingNode = nullptr;
+                            if (deserializeNode(&editingNode, source))
+                            {
+                                Editor::getInstance()->setEditingNode(editingNode);
+                            }
                         };
                     }
 
@@ -265,6 +271,14 @@ namespace CCImEditor
 
                 if (ImGui::BeginMenu("Edit"))
                 {
+                    CommandHistory& commandHistory = Editor::getInstance()->getCommandHistory();
+                    if (ImGui::MenuItem("Undo", "CTRL+Z", false, commandHistory.canUndo()))
+                        commandHistory.undo();
+
+                    if (ImGui::MenuItem("Redo", "CTRL+Y", false, commandHistory.canRedo()))
+                        commandHistory.redo();
+
+                    ImGui::Separator();
                     if (ImGui::MenuItem("Cut", "CTRL+X"))
                         Editor::getInstance()->cut();
 
@@ -280,7 +294,12 @@ namespace CCImEditor
                         if (cocos2d::Node* node = getSelectedNode())
                         {
                             if (Editor::getInstance()->getEditingNode() != node && node->getComponent("CCImEditor.NodeImDrawer"))
-                                node->runAction(cocos2d::RemoveSelf::create());
+                            {
+                                if (RemoveNode* cmd = RemoveNode::create(node))
+                                {
+                                    Editor::getInstance()->getCommandHistory().queue(cmd);
+                                }
+                            }
                         }
                     }
                     ImGui::EndMenu();
@@ -303,7 +322,30 @@ namespace CCImEditor
                         {
                             if (ImGui::MenuItem(displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0)))
                             {
-                                s_nextAddingNode = nodeType.create();
+                                // add to selected node if possible
+                                cocos2d::Node* parent = nullptr;
+                                if (cocos2d::Node* node = getSelectedNode())
+                                {
+                                    if (canHaveChildren(node))
+                                        parent = node;
+                                }
+
+                                // otherwise add to edting node
+                                if (!parent)
+                                    parent = Editor::getInstance()->getEditingNode();
+
+                                if (parent)
+                                {
+                                    if (cocos2d::Node* child = nodeType.create())
+                                    {
+                                        AddNode* command = AddNode::create(parent, child);
+                                        Editor::getInstance()->getCommandHistory().queue(command);
+                                    }
+                                }
+                                else
+                                {
+                                    CCLOGERROR("Failed to add node, editing node does not exist!");
+                                }
                             }
                         }
 
@@ -521,6 +563,8 @@ namespace CCImEditor
     {
         Node::update(dt);
 
+        _commandHistory.update(dt);
+
         _widgets.erase(std::remove(_widgets.begin(), _widgets.end(), nullptr), _widgets.end());
         for(Widget* widget : _widgets)
         {
@@ -532,42 +576,6 @@ namespace CCImEditor
         {
             setEditingNode(s_nextEditingNode);
             s_nextEditingNode = nullptr;
-        }
-
-        if (s_nextAddingNode)
-        {
-            // add to selected node if possible
-            if (cocos2d::Node* node = getSelectedNode())
-            {
-                if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer")))
-                {
-                    const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
-                    NodeFactory::NodeTypeMap::const_iterator it = nodeTypes.find(drawer->getTypeName());
-                    CC_ASSERT(it != nodeTypes.end());
-                    if ((it->second.getMask() & NodeFlags_CanHaveChildren) > 0)
-                    {
-                        node->addChild(s_nextAddingNode);
-                        s_nextAddingNode = nullptr;
-                    }
-                }
-            }
-
-            // otherwise add to edting node
-            if (s_nextAddingNode)
-            {
-                if (_editingNode)
-                {
-                    _editingNode->addChild(s_nextAddingNode);
-                    s_nextAddingNode = nullptr;
-                }
-            }
-
-            // cancel if failed
-            if (s_nextAddingNode)
-            {
-                CCLOGERROR("Failed to add node, editing node does not exist!");
-                s_nextAddingNode = nullptr;
-            }
         }
     }
 
@@ -626,10 +634,14 @@ namespace CCImEditor
 
     void Editor::setEditingNode(cocos2d::Node* node)
     {
+        if (_editingNode == node)
+            return;
+
         if (_editingNode)
             _editingNode->removeFromParent();
-        _editingNode = node;
 
+        _editingNode = node;
+        _commandHistory.reset();
         cocos2d::Director::getInstance()->getRunningScene()->addChild(node);
     }
 
@@ -653,7 +665,10 @@ namespace CCImEditor
             if (node != _editingNode && serializeNode(node, target))
             {
                 _clipboardValue = std::move(target);
-                node->runAction(cocos2d::RemoveSelf::create());
+                if (RemoveNode* cmd = RemoveNode::create(node))
+                {
+                    _commandHistory.queue(cmd);
+                }
             }
         }
     }
@@ -682,7 +697,14 @@ namespace CCImEditor
             if (!parent)
                 parent = Editor::getInstance()->getEditingNode();
 
-            deserializeNode(parent, _clipboardValue);
+            cocos2d::Node* node = nullptr;
+            if (parent && deserializeNode(&node, _clipboardValue))
+            {
+                if (AddNode* cmd = AddNode::create(parent, node))
+                {
+                    _commandHistory.queue(cmd);
+                }
+            }
         }, 0, "paste");
     }
 
