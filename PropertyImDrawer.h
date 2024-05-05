@@ -20,13 +20,13 @@ namespace CCImEditor
 
         static bool serialize(cocos2d::Value& target, ...)
         {
-            CCLOGWARN("Can't serialize property: %s, missing specialization", label);
+            CCLOGWARN("Can't serialize property, missing specialization");
             return false;
         }
 
         static bool deserialize(const cocos2d::Value& source, ...)
         {
-            CCLOGWARN("Can't deserialize property: %s, missing specialization", label);
+            CCLOGWARN("Can't deserialize property, missing specialization");
             return false;
         }
     };
@@ -317,20 +317,20 @@ namespace CCImEditor
     template <typename T>
     struct Enum: public Internal::EnumBase
     {
-        using Type = typename T;
+        using Type = T;
     };
     
     template <typename T>
     struct Mask: public Internal::MaskBase
     {
-        using Type = typename T;
+        using Type = T;
     };
 
     // 64bit mask is not supported because cocos2d::Value does not handle 64bit int.
     template <typename T>
     struct PropertyImDrawer<T, typename std::enable_if<std::is_base_of<Internal::MaskBase, T>::value>::type> {
         static_assert(IM_ARRAYSIZE(T::Type::s_names) == IM_ARRAYSIZE(T::Type::s_values), "Size of enum names and values do not match");
-        static_assert(sizeof(T::Type::MaskType) <= 4,
+        static_assert(sizeof(typename T::Type::MaskType) <= 4,
             "64bit mask is not supported because cocos2d::Value does not handle 64bit int");
 
         static bool draw(const char* label, typename T::Type::MaskType& mask) {
@@ -398,7 +398,7 @@ namespace CCImEditor
                     bool selected = i == j;
                     if (ImGui::Selectable(T::Type::s_names[j], &selected))
                     {
-                        v = static_cast<T::Type::EnumType>(T::Type::s_values[j]);
+                        v = static_cast<typename T::Type::EnumType>(T::Type::s_values[j]);
                         valueChanged = true;
                     }
 
@@ -417,14 +417,14 @@ namespace CCImEditor
         }
 
         static bool deserialize(const cocos2d::Value& source, typename T::Type::EnumType& v) {
-            v = static_cast<T::Type::EnumType>(source.asInt());
+            v = static_cast<typename T::Type::EnumType>(source.asInt());
             return true;
         }
     };
 
     struct LightFlag {
-        using MaskType = typename unsigned int;
-        using EnumType = typename cocos2d::LightFlag;
+        using MaskType = unsigned int;
+        using EnumType = cocos2d::LightFlag;
         static constexpr const char* s_names[] = {
             "LIGHT0",
             "LIGHT1",
@@ -465,7 +465,7 @@ namespace CCImEditor
     };
 
     struct CameraFlag {
-        using MaskType = typename unsigned short;
+        using MaskType = unsigned short;
         static constexpr const char* s_names[] = {
             "DEFAULT",
             "USER1",
@@ -490,9 +490,9 @@ namespace CCImEditor
             (int)cocos2d::CameraFlag::USER8,
         };
     };
-
+    
     struct ShadowSize {
-        using EnumType = typename cocos2d::ShadowSize;
+        using EnumType = cocos2d::ShadowSize;
         static constexpr const char* s_names[] = {
             "Low_256x256",
             "Medium_512x512",
@@ -509,7 +509,7 @@ namespace CCImEditor
     };
 
     struct BlendSrcDst {
-        using EnumType = typename GLenum;
+        using EnumType = GLenum;
         static constexpr const char* s_names[] = {
             "GL_ZERO",
             "GL_ONE",
@@ -538,7 +538,7 @@ namespace CCImEditor
     };
 
     struct TextVAlignment {
-        using EnumType = typename cocos2d::TextVAlignment;
+        using EnumType = cocos2d::TextVAlignment;
         static constexpr const char* s_names[] = {
             "TOP",
             "CENTER",
@@ -553,7 +553,7 @@ namespace CCImEditor
     };
 
     struct TextHAlignment {
-        using EnumType = typename cocos2d::TextHAlignment;
+        using EnumType = cocos2d::TextHAlignment;
         static constexpr const char* s_names[] = {
             "LEFT",
             "CENTER",
@@ -568,7 +568,7 @@ namespace CCImEditor
     };
 
     struct LabelOverflow {
-        using EnumType = typename cocos2d::Label::Overflow;
+        using EnumType = cocos2d::Label::Overflow;
         static constexpr const char* s_names[] = {
             "NONE",
             "CLAMP",

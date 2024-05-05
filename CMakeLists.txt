@@ -20,6 +20,7 @@ file(GLOB_RECURSE SOURCE
     ${CMAKE_CURRENT_LIST_DIR}/ImGuiHelper.cpp
     ${CMAKE_CURRENT_LIST_DIR}/NodeFactory.cpp
     ${CMAKE_CURRENT_LIST_DIR}/NodeImDrawer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/PropertyImDrawer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Widget.cpp
     ${CMAKE_CURRENT_LIST_DIR}/WidgetFactory.cpp
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Node2D.cpp

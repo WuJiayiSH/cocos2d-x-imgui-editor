@@ -13,6 +13,8 @@ namespace CCImEditor
     public:
         static Editor* getInstance();
 
+        using cocos2d::Layer::getUserObject;
+        using cocos2d::Layer::setUserObject;
         Ref* getUserObject(const std::string& path) { return _userObjects[path]; };
         void setUserObject(const std::string& path, Ref* handle) { _userObjects[path] = handle; };
 
@@ -31,7 +33,7 @@ namespace CCImEditor
         void registerWidgets();
         void registerNodes();
         
-        void visit(cocos2d::Renderer *renderer, const cocos2d::Mat4 &parentTransform, uint32_t parentFlags);
+        void visit(cocos2d::Renderer *renderer, const cocos2d::Mat4 &parentTransform, uint32_t parentFlags) override;
 
         void openLoadFileDialog();
         void openSaveFileDialog();

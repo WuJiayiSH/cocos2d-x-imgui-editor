@@ -36,7 +36,7 @@ namespace CCImEditor
         void property(const char *label, Getter &&getter, Setter &&setter, Object&& object, Args &&...args)
         {
             using PropertyTypeMaybeQualified = typename invoke_hpp::invoke_result_t<decltype(getter), Object>;
-            using PropertyType = typename std::remove_cv<std::remove_reference<PropertyTypeMaybeQualified>::type>::type;
+            using PropertyType = typename std::remove_cv<typename std::remove_reference<PropertyTypeMaybeQualified>::type>::type;
 
             // use PropertyType if DrawerType is not specified
             using PropertyOrDrawerType = typename std::conditional<std::is_same<DrawerType, Internal::DefaultArgumentTag>::value, PropertyType, DrawerType>::type;
@@ -47,7 +47,7 @@ namespace CCImEditor
             {
                 // object is always valid for undo/redo. It will be retained if it is removed form scene by a command.
                 // object is wrapped up here by a weakptr to guarantee it crashes if it is not the case.
-                using ObjectType = typename std::remove_pointer<std::remove_cv<std::remove_reference<Object>::type>::type>::type;
+                using ObjectType = typename std::remove_pointer<typename std::remove_cv<typename std::remove_reference<Object>::type>::type>::type;
 
                 auto v = invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
                 if (PropertyImDrawer<PropertyOrDrawerType>::draw(label, v, std::forward<Args>(args)...))
