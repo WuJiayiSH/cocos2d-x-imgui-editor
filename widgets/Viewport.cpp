@@ -115,6 +115,11 @@ namespace CCImEditor
                 camera->setPosition3D(_camera->getPosition3D());
                 camera->setRotation3D(_camera->getRotation3D());
             }
+            else if(_is3D)
+            {
+                camera->setPosition3D(Vec3(0.0f, 500.0f, 1000.0f));
+                camera->lookAt(Vec3::ZERO);
+            }
 
             _camera->removeFromParent();
         }
