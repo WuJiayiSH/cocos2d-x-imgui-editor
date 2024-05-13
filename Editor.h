@@ -42,6 +42,7 @@ namespace CCImEditor
         void copy();
         void cut();
         void paste();
+        bool removeSelectedNode();
 
         CommandHistory& getCommandHistory() { return _commandHistory; };
     

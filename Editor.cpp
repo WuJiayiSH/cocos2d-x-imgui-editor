@@ -289,19 +289,8 @@ namespace CCImEditor
                         Editor::getInstance()->paste();
 
                     ImGui::Separator();
-                    if (ImGui::MenuItem("Delete"))
-                    {
-                        if (cocos2d::Node* node = getSelectedNode())
-                        {
-                            if (Editor::getInstance()->getEditingNode() != node && node->getComponent("CCImEditor.NodeImDrawer"))
-                            {
-                                if (RemoveNode* cmd = RemoveNode::create(node))
-                                {
-                                    Editor::getInstance()->getCommandHistory().queue(cmd);
-                                }
-                            }
-                        }
-                    }
+                    if (ImGui::MenuItem("Delete", "Delete"))
+                        Editor::getInstance()->removeSelectedNode();
                     ImGui::EndMenu();
                 }
 
@@ -400,6 +389,9 @@ namespace CCImEditor
 
             if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_V, false))
                 Editor::getInstance()->paste();
+
+            if (ImGui::IsKeyPressed(ImGuiKey_Delete, false))
+                Editor::getInstance()->removeSelectedNode();
 
             ImGui::End();
         }
@@ -706,6 +698,23 @@ namespace CCImEditor
                 }
             }
         }, 0, "paste");
+    }
+
+    bool Editor::removeSelectedNode()
+    {
+        if (cocos2d::Node* node = getSelectedNode())
+        {
+            if (Editor::getInstance()->getEditingNode() != node && node->getComponent("CCImEditor.NodeImDrawer"))
+            {
+                if (RemoveNode* cmd = RemoveNode::create(node))
+                {
+                    Editor::getInstance()->getCommandHistory().queue(cmd);
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     void Editor::openLoadFileDialog()
