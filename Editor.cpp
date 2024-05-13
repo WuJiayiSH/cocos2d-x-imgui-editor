@@ -205,6 +205,7 @@ namespace CCImEditor
                             if (deserializeNode(&editingNode, source))
                             {
                                 Editor::getInstance()->setEditingNode(editingNode);
+                                s_currentFile = file;
                             }
                         };
                     }
