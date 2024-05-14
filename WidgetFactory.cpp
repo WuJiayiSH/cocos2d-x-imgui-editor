@@ -3,6 +3,11 @@
 
 namespace CCImEditor
 {
+    namespace
+    {
+        std::unordered_map<std::string, uint64_t> s_nameIdMap;
+    }
+
     Widget* WidgetFactory::WidgetType::create() const
     {
         Widget* widget = _constructor();
@@ -13,7 +18,10 @@ namespace CCImEditor
         size_t lastSlash = displayName.find_last_of('/');
         oss << (lastSlash == std::string::npos ? displayName : displayName.substr(lastSlash + 1));
         oss << "###";
-        oss << static_cast<void*>(widget); // use pointer address as unique name
+        oss << _name;
+        oss << ".";
+        uint64_t& id = s_nameIdMap[_name];
+        oss << id++;
         
         if (widget && widget->init(_name, oss.str(), _mask))
         {

@@ -482,6 +482,11 @@ namespace CCImEditor
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+        cocos2d::FileUtils* fileUtil = cocos2d::FileUtils::getInstance();
+        fileUtil->createDirectory(fileUtil->getWritablePath() + "cc_imgui_editor");
+        static const std::string lastSessionFile = fileUtil->getWritablePath() + "cc_imgui_editor/last_session.ini";
+        io.IniFilename = lastSessionFile.c_str();
+        
         const int style = cocos2d::UserDefault::getInstance()->getIntegerForKey("cc_imgui_editor.style", 0);
         switch (style)
         {
