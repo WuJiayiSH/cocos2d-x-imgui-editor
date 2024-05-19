@@ -200,9 +200,7 @@ namespace CCImEditor
                         Editor::getInstance()->openLoadFileDialog();
                         s_openFileCallback = [](const std::string file)
                         {
-                            const cocos2d::ValueMap& source = cocos2d::FileUtils::getInstance()->getValueMapFromFile(file);
-                            cocos2d::Node* editingNode = nullptr;
-                            if (deserializeNode(&editingNode, source))
+                            if (cocos2d::Node* editingNode = Editor::loadFile(file))
                             {
                                 Editor::getInstance()->setEditingNode(editingNode);
                                 s_currentFile = file;
@@ -765,5 +763,17 @@ namespace CCImEditor
         }
 
         return false;
+    }
+
+    cocos2d::Node* Editor::loadFile(const std::string& file)
+    {
+        const cocos2d::ValueMap& valueMap = cocos2d::FileUtils::getInstance()->getValueMapFromFile(file);
+        cocos2d::Node* node = nullptr;
+        if (deserializeNode(&node, valueMap))
+        {
+            return node;
+        }
+
+        return nullptr;
     }
 }

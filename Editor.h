@@ -45,6 +45,8 @@ namespace CCImEditor
         bool removeSelectedNode();
 
         CommandHistory& getCommandHistory() { return _commandHistory; };
+
+        static cocos2d::Node* loadFile(const std::string& file);
     
     CC_CONSTRUCTOR_ACCESS: 
         Editor();
