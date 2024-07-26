@@ -32,6 +32,7 @@ namespace CCImEditor
         Internal::FileDialogType s_fileDialogType;
         std::unordered_map<ImGuiID, std::string> s_fileDialogResults;
         ImGuiID s_fileDialogImGuiID = 0;
+        cocos2d::ValueMap s_settings;
 
         cocos2d::Node* getSelectedNode()
         {
@@ -130,13 +131,38 @@ namespace CCImEditor
             return true;
         }
 
+        void setCurrentFile(const std::string& file)
+        {
+            s_currentFile = file;
+
+            cocos2d::Value& recentFilesValue = s_settings["recent_files"];
+            if (recentFilesValue.getType() != cocos2d::Value::Type::VECTOR)
+                recentFilesValue = cocos2d::ValueVector();
+
+            cocos2d::ValueVector& recentFiles = recentFilesValue.asValueVector();
+            recentFiles.erase(std::remove_if(recentFiles.begin(), recentFiles.end(),
+                [&file](const cocos2d::Value& v)
+                {
+                    return v.asString() == file;
+                }),
+                recentFiles.end()
+            );
+
+            recentFiles.insert(recentFiles.begin(), cocos2d::Value(file));
+            if (recentFiles.size() > 10)
+                recentFiles.resize(10);
+
+            std::string settingFile = cocos2d::FileUtils::getInstance()->getWritablePath() + "cc_imgui_editor/settings.plist";
+            cocos2d::FileUtils::getInstance()->writeToFile(s_settings, settingFile);
+        }
+
         void serializeEditingNodeToFile(const std::string& file)
         {
             cocos2d::ValueMap root;
             if (serializeNode(Editor::getInstance()->getEditingNode(), root))
             {
                 cocos2d::FileUtils::getInstance()->writeToFile(root, file);
-                s_currentFile = file;
+                setCurrentFile(file);
             }
         }
 
@@ -203,9 +229,32 @@ namespace CCImEditor
                             if (cocos2d::Node* editingNode = Editor::loadFile(file))
                             {
                                 Editor::getInstance()->setEditingNode(editingNode);
-                                s_currentFile = file;
+                                setCurrentFile(file);
                             }
                         };
+                    }
+
+                    if (ImGui::BeginMenu("Open Recent"))
+                    {
+                        auto it = s_settings.find("recent_files");
+                        if (it != s_settings.end())
+                        {
+                            const cocos2d::ValueVector& recentFiles = it->second.asValueVector();
+                            for (const cocos2d::Value& recentFile: recentFiles)
+                            {
+                                const std::string& filename = recentFile.asString();
+                                if (ImGui::MenuItem(filename.c_str()))
+                                {
+                                    if (cocos2d::Node* editingNode = Editor::loadFile(filename))
+                                    {
+                                        Editor::getInstance()->setEditingNode(editingNode);
+                                        setCurrentFile(filename);
+                                    }
+                                }
+                            }
+                        }
+
+						ImGui::EndMenu();
                     }
 
                     ImGui::Separator();
@@ -492,7 +541,10 @@ namespace CCImEditor
             case 1: ImGui::StyleColorsLight(); break;
             case 2: ImGui::StyleColorsClassic(); break;
         }
-        
+
+        std::string settingFile = fileUtil->getWritablePath() + "cc_imgui_editor/settings.plist";
+        s_settings = fileUtil->getValueMapFromFile(settingFile);
+
         setName("Editor");
         return true;
     }
