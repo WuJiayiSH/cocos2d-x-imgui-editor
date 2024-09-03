@@ -183,13 +183,6 @@ namespace Internal {
                         break;
                     }
 
-                    // TODO: search path should be returned
-                    if (type == FileDialogType::LOAD)
-                    {
-                        IM_ASSERT(file.substr(0, s_selectedSearchPath.size()) == s_selectedSearchPath);
-                        file.erase(0, s_selectedSearchPath.size());
-                    }
-
                     outFile = std::move(file);
                     outFileChanged = true;
                 } while (false);
