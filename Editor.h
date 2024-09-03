@@ -44,6 +44,11 @@ namespace CCImEditor
         void paste();
         bool removeSelectedNode();
 
+        template<typename ...Args>
+        void alert(const char* format, Args... args) {
+            _alertText = cocos2d::StringUtils::format(format, std::forward<Args>(args)...);
+        }
+
         CommandHistory& getCommandHistory() { return _commandHistory; };
 
         static cocos2d::Node* loadFile(const std::string& file);
@@ -70,6 +75,8 @@ namespace CCImEditor
         cocos2d::ValueMap _clipboardValue;
 
         CommandHistory _commandHistory;
+
+        std::string _alertText;
     };
 }
 

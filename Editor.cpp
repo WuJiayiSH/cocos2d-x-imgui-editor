@@ -158,11 +158,20 @@ namespace CCImEditor
 
         void serializeEditingNodeToFile(const std::string& file)
         {
+            if (file.empty())
+                return;
+
             cocos2d::ValueMap root;
             if (serializeNode(Editor::getInstance()->getEditingNode(), root))
             {
-                cocos2d::FileUtils::getInstance()->writeToFile(root, file);
-                setCurrentFile(file);
+                if (cocos2d::FileUtils::getInstance()->writeToFile(root, file))
+                    setCurrentFile(file);
+                else
+                    Editor::getInstance()->alert("Failed to write to file: %s", file.c_str());
+            }
+            else
+            {
+                Editor::getInstance()->alert("Failed to serialize editing node to file:\n %s", file.c_str());
             }
         }
 
@@ -603,6 +612,23 @@ namespace CCImEditor
                 }
                 
                 s_fileDialogImGuiID = 0;
+            }
+        }
+        else if(!_alertText.empty())
+        {
+            const char* windowName = "Alert";
+            if (!ImGui::IsPopupOpen(windowName))
+                ImGui::OpenPopup(windowName);
+
+            if (ImGui::BeginPopupModal(windowName, nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text(_alertText.c_str());
+                if (ImGui::Button("OK"))
+                {
+                    _alertText = "";
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
             }
         }
     }
