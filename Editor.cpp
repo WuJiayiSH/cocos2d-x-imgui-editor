@@ -17,6 +17,7 @@
 #include "nodes/DirectionLight.h"
 #include "nodes/PointLight.h"
 #include "nodes/SpotLight.h"
+#include "nodes/Geometry.h"
 #include "commands/AddNode.h"
 #include "commands/RemoveNode.h"
 #include "FileDialog.h"
@@ -507,6 +508,29 @@ namespace CCImEditor
                 return cocos2d::SpotLight::create(cocos2d::Vec3::UNIT_Z, cocos2d::Vec3::ZERO, cocos2d::Color3B::WHITE, 0.0f, CC_DEGREES_TO_RADIANS(30), 5000.0f);
             }
         };
+
+        class QuadProxy
+        {
+        public:
+            static cocos2d::Sprite3D* create()
+            {
+                cocos2d::Sprite3D* sprite3D = cocos2d::Sprite3D::create();
+                if (!sprite3D)
+                    return nullptr;
+
+                std::vector<float> vertices = {-0.5f, 0.5f, 0.0f, 0.5f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f};
+                std::vector<float> normals = {0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0};
+                std::vector<float> uvs = {0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f};
+                std::vector<unsigned short> indices = {0, 2, 1, 2, 3, 1};
+                cocos2d::Mesh* mesh = cocos2d::Mesh::create(vertices, normals, uvs, indices);
+                if (!mesh)
+                    return nullptr;
+
+                sprite3D->addMesh(mesh);
+                sprite3D->genMaterial();
+                return sprite3D;
+            }
+        };
     }
 
     Editor::Editor()
@@ -688,6 +712,8 @@ namespace CCImEditor
 
         NodeFactory::getInstance()->registerNode<Node3D, cocos2d::Node>("CCImEditor.Node3D", "3D/Node3D", NodeFlags_CanHaveChildren | NodeFlags_CanBeRoot);
         NodeFactory::getInstance()->registerNode<Sprite3D, cocos2d::Sprite3D>("CCImEditor.Sprite3D", "3D/Sprite3D");
+        NodeFactory::getInstance()->registerNode<Geometry, QuadProxy>("CCImEditor.Quad", "3D/Quad");
+
         NodeFactory::getInstance()->registerNode<DirectionLight, DirectionLightProxy>("CCImEditor.DirectionLight", "3D/Light/Direction Light");
         NodeFactory::getInstance()->registerNode<PointLight, PointLightProxy>("CCImEditor.PointLight", "3D/Light/Point Light");
         NodeFactory::getInstance()->registerNode<BaseLight, AmbientLightProxy>("CCImEditor.AmbientLight", "3D/Light/Ambient Light");
