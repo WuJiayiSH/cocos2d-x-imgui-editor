@@ -5,28 +5,35 @@ namespace CCImEditor
 {
     void Sprite3D::draw()
     {
-        Node3D::draw();
-
-        if (_context == Context::DRAW && !ImGui::CollapsingHeader("Sprite3D", ImGuiTreeNodeFlags_DefaultOpen))
-            return;
-
-        cocos2d::Sprite3D* owner = static_cast<cocos2d::Sprite3D*>(getOwner());
-        property<FilePath>("Model", 
-        [this] (cocos2d::Sprite3D*) -> std::string
+        auto modelGetter = [this] (cocos2d::Sprite3D*) -> std::string
         {
             auto it = _customValue.find("Model");
             if (it != _customValue.end() )
                 return it->second.asString();
 
             return std::string();
-        },
-        [this] (cocos2d::Sprite3D* node, const std::string& filePath)
+        };
+
+        auto modelSetter = [this] (cocos2d::Sprite3D* node, const std::string& filePath)
         {
             _customValue["Model"] = filePath;
             node->removeAllChildren();
             node->initWithFile(filePath);
-        },
-        owner);
+        };
+
+        cocos2d::Sprite3D* owner = static_cast<cocos2d::Sprite3D*>(getOwner());
+
+        // set model at the beginning when deserializing because modelSetter reinitialize the owner
+        if (_context == Context::DESERIALIZE)
+            property<FilePath>("Model", modelGetter, modelSetter, owner);
+
+        Node3D::draw();
+
+        if (_context == Context::DRAW && !ImGui::CollapsingHeader("Sprite3D", ImGuiTreeNodeFlags_DefaultOpen))
+            return;
+
+        if (_context != Context::DESERIALIZE)
+            property<FilePath>("Model", modelGetter, modelSetter, owner);
 
         property<FilePath>("Texture", 
         [this] (cocos2d::Sprite3D*) -> std::string
