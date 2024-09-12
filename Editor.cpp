@@ -268,15 +268,9 @@ namespace CCImEditor
                     }
 
                     ImGui::Separator();
-                    if (ImGui::MenuItem("Save"))
+                    if (ImGui::MenuItem("Save", "CTRL+S"))
                     {
-                        if (s_currentFile.empty())
-                        {
-                            Editor::getInstance()->openSaveFileDialog();
-                            s_saveFileCallback = serializeEditingNodeToFile;
-                        }
-                        else
-                            serializeEditingNodeToFile(s_currentFile);
+                        Editor::getInstance()->save();
                     }
 
                     if (ImGui::MenuItem("Save As..."))
@@ -444,7 +438,10 @@ namespace CCImEditor
 
             if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Y, false))
                 Editor::getInstance()->getCommandHistory().redo();
-                
+            
+            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false))
+                Editor::getInstance()->save();
+
             if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_X, false))
                 Editor::getInstance()->cut();
 
@@ -749,6 +746,17 @@ namespace CCImEditor
         _editingNode = node;
         _commandHistory.reset();
         cocos2d::Director::getInstance()->getRunningScene()->addChild(node);
+    }
+
+    void Editor::save()
+    {
+        if (s_currentFile.empty())
+        {
+            openSaveFileDialog();
+            s_saveFileCallback = serializeEditingNodeToFile;
+        }
+        else
+            serializeEditingNodeToFile(s_currentFile);
     }
 
     void Editor::copy()

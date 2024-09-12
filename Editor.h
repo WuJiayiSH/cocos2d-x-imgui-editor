@@ -39,6 +39,7 @@ namespace CCImEditor
         void openSaveFileDialog();
         bool fileDialogResult(std::string& outFile);
 
+        void save();
         void copy();
         void cut();
         void paste();
