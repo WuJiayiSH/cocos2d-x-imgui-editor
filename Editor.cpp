@@ -439,6 +439,12 @@ namespace CCImEditor
 
             // shortcuts
             ImGuiIO& io = ImGui::GetIO();
+            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z, false))
+                Editor::getInstance()->getCommandHistory().undo();
+
+            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Y, false))
+                Editor::getInstance()->getCommandHistory().redo();
+                
             if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_X, false))
                 Editor::getInstance()->cut();
 
