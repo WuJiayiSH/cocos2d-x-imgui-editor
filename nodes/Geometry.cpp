@@ -13,6 +13,25 @@ namespace CCImEditor
         cocos2d::Sprite3D* owner = dynamic_cast<cocos2d::Sprite3D*>(getOwner());
         CC_ASSERT(owner);
 
+        property<FilePath>("Material", 
+        [this] (cocos2d::Sprite3D*) -> std::string
+        {
+            auto it = _customValue.find("Material");
+            if (it != _customValue.end())
+                return it->second.asString();
+
+            return std::string();
+        },
+        [this] (cocos2d::Sprite3D* node, const std::string& filePath)
+        {
+            _customValue["Material"] = filePath;
+            if (cocos2d::Material* material = cocos2d::Material::createWithFilename(filePath))
+            {
+                node->setMaterial(material);
+            }
+        },
+        owner);
+
         property<FilePath>("Texture", 
         [this] (cocos2d::Sprite3D*) -> std::string
         {
