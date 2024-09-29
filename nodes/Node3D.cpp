@@ -7,7 +7,7 @@ namespace CCImEditor
 {
     void Node3D::draw()
     {
-        if (_context == Context::DRAW && !ImGui::CollapsingHeader("Node3D", ImGuiTreeNodeFlags_DefaultOpen))
+        if (!drawHeader("Node3D"))
             return;
 
         property("Name", &Node::getName, &Node::setName, getOwner());

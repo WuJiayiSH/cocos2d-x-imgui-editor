@@ -5,70 +5,48 @@ namespace CCImEditor
 {
     void Sprite3D::draw()
     {
-        auto modelGetter = [this] (cocos2d::Sprite3D*) -> std::string
-        {
-            auto it = _customValue.find("Model");
-            if (it != _customValue.end() )
-                return it->second.asString();
+        Node3D::draw();
 
-            return std::string();
-        };
-
-        auto modelSetter = [this] (cocos2d::Sprite3D* node, const std::string& filePath)
-        {
-            _customValue["Model"] = filePath;
-            node->removeAllChildren();
-            node->initWithFile(filePath);
-        };
+        if (!drawHeader("Sprite3D"))
+            return;
 
         cocos2d::Sprite3D* owner = static_cast<cocos2d::Sprite3D*>(getOwner());
 
-        // set model at the beginning when deserializing because modelSetter reinitialize the owner
-        if (_context == Context::DESERIALIZE)
-            property<FilePath>("Model", modelGetter, modelSetter, owner);
+        property<FilePath>("Model", 
+            DefaultGetter<std::string>(),
+            [this] (cocos2d::Sprite3D* node, const std::string& filePath)
+            {
+                cocos2d::Vec3 position = node->getPosition3D();
+                cocos2d::Quaternion rotation = node->getRotationQuat();
+                cocos2d::Vec3 scale = {node->getScaleX(), node->getScaleY(), node->getScaleZ()};
 
-        Node3D::draw();
+                node->removeAllChildren();
+                node->initWithFile(filePath);
 
-        if (_context == Context::DRAW && !ImGui::CollapsingHeader("Sprite3D", ImGuiTreeNodeFlags_DefaultOpen))
-            return;
-
-        if (_context != Context::DESERIALIZE)
-            property<FilePath>("Model", modelGetter, modelSetter, owner);
+                // initWithFile may have changed position, rotation and scale. Set them back.
+                node->setPosition3D(position);
+                node->setRotationQuat(rotation);
+                node->setScaleX(scale.x);
+                node->setScaleY(scale.y);
+                node->setScaleZ(scale.z);
+            },
+            owner);
 
         property<FilePath>("Material", 
-        [this] (cocos2d::Sprite3D*) -> std::string
-        {
-            auto it = _customValue.find("Material");
-            if (it != _customValue.end())
-                return it->second.asString();
-
-            return std::string();
-        },
-        [this] (cocos2d::Sprite3D* node, const std::string& filePath)
-        {
-            _customValue["Material"] = filePath;
-            if (cocos2d::Material* material = cocos2d::Material::createWithFilename(filePath))
+            DefaultGetter<std::string>(),
+            [this] (cocos2d::Sprite3D* node, const std::string& filePath)
             {
-                node->setMaterial(material);
-            }
-        },
-        owner);
+                if (cocos2d::Material* material = cocos2d::Material::createWithFilename(filePath))
+                {
+                    node->setMaterial(material);
+                }
+            },
+            owner);
 
         property<FilePath>("Texture", 
-        [this] (cocos2d::Sprite3D*) -> std::string
-        {
-            auto it = _customValue.find("Texture");
-            if (it != _customValue.end())
-                return it->second.asString();
-
-            return std::string();
-        },
-        [this] (cocos2d::Sprite3D* node, const std::string& filePath)
-        {
-            _customValue["Texture"] = filePath;
-            node->setTexture(filePath);
-        },
-        owner);
+            DefaultGetter<std::string>(),
+            static_cast<void(cocos2d::Sprite3D::*)(const std::string&)>(&cocos2d::Sprite3D::setTexture),
+            owner);
 
         property<Mask<LightFlag>>("LightMask", &cocos2d::Sprite3D::getLightMask, &cocos2d::Sprite3D::setLightMask, owner);
 

@@ -7,46 +7,27 @@ namespace CCImEditor
     {
         Node3D::draw();
 
-        if (_context == Context::DRAW && !ImGui::CollapsingHeader(getShortName().c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+        if (!drawHeader(getShortName().c_str()))
             return;
 
         cocos2d::Sprite3D* owner = dynamic_cast<cocos2d::Sprite3D*>(getOwner());
         CC_ASSERT(owner);
 
         property<FilePath>("Material", 
-        [this] (cocos2d::Sprite3D*) -> std::string
-        {
-            auto it = _customValue.find("Material");
-            if (it != _customValue.end())
-                return it->second.asString();
-
-            return std::string();
-        },
-        [this] (cocos2d::Sprite3D* node, const std::string& filePath)
-        {
-            _customValue["Material"] = filePath;
-            if (cocos2d::Material* material = cocos2d::Material::createWithFilename(filePath))
+            DefaultGetter<std::string>(),
+            [this] (cocos2d::Sprite3D* node, const std::string& filePath)
             {
-                node->setMaterial(material);
-            }
-        },
-        owner);
+                if (cocos2d::Material* material = cocos2d::Material::createWithFilename(filePath))
+                {
+                    node->setMaterial(material);
+                }
+            },
+            owner);
 
-        property<FilePath>("Texture", 
-        [this] (cocos2d::Sprite3D*) -> std::string
-        {
-            auto it = _customValue.find("Texture");
-            if (it != _customValue.end())
-                return it->second.asString();
-
-            return std::string();
-        },
-        [this] (cocos2d::Sprite3D* node, const std::string& filePath)
-        {
-            _customValue["Texture"] = filePath;
-            node->setTexture(filePath);
-        },
-        owner);
+        property<FilePath>("Texture",
+            DefaultGetter<std::string>(),
+            static_cast<void(cocos2d::Sprite3D::*)(const std::string&)>(&cocos2d::Sprite3D::setTexture),
+            owner);
 
         property<Mask<LightFlag>>("LightMask", &cocos2d::Sprite3D::getLightMask, &cocos2d::Sprite3D::setLightMask, owner);
 

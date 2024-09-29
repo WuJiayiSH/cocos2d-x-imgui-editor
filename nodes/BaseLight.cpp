@@ -7,7 +7,7 @@ namespace CCImEditor
     {
         Node3D::draw();
         
-        if (_context == Context::DRAW && !ImGui::CollapsingHeader(getShortName().c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+        if (!drawHeader(getShortName().c_str()))
             return;
 
         cocos2d::BaseLight* owner = static_cast<cocos2d::BaseLight*>(getOwner());

@@ -7,25 +7,14 @@ namespace CCImEditor
     {
         Node2D::draw();
 
-        if (_context == Context::DRAW && !ImGui::CollapsingHeader("Sprite", ImGuiTreeNodeFlags_DefaultOpen))
+        if (!drawHeader("Sprite"))
             return;
 
         cocos2d::Sprite* owner = static_cast<cocos2d::Sprite*>(getOwner());
         property<FilePath>("Texture", 
-        [this] (cocos2d::Sprite* sprite) -> std::string
-        {
-            auto it = _customValue.find("Texture");
-            if (it != _customValue.end())
-                return it->second.asString();
-
-            return std::string();
-        },
-        [this] (cocos2d::Sprite* sprite, const std::string& filePath)
-        {
-            _customValue["Texture"] = filePath;
-            sprite->setTexture(filePath);
-        },
-        owner);
+            DefaultGetter<std::string>(),
+            static_cast<void(cocos2d::Sprite::*)(const std::string&)>(&cocos2d::Sprite::setTexture),
+            owner);
 
         property<Enum<BlendSrcDst>>("Blend Source###BlendSrc",  [] (cocos2d::Sprite* sprite) -> GLenum
         {

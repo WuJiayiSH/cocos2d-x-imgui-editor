@@ -7,7 +7,7 @@ namespace CCImEditor
     {
         Node2D::draw();
         
-        if (_context == Context::DRAW && !ImGui::CollapsingHeader(getShortName().c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+        if (!drawHeader(getShortName().c_str()))
             return;
 
         cocos2d::Label* owner = static_cast<cocos2d::Label*>(getOwner());
@@ -24,20 +24,10 @@ namespace CCImEditor
         property<Enum<TextVAlignment>>("Vertical Alignment###VAlign", &cocos2d::Label::getVerticalAlignment, &cocos2d::Label::setVerticalAlignment, owner);
         
         property<FilePath>("Font Name###FontName", 
-        [this] (cocos2d::Label* label) -> std::string
-        {
-            auto it = _customValue.find("FontName");
-            if (it != _customValue.end())
-                return it->second.asString();
+            DefaultGetter<std::string>(), 
+            &cocos2d::Label::setSystemFontName,
+            owner);
 
-            return std::string();
-        }, 
-        [this] (cocos2d::Label* label, const std::string& filePath)
-        {
-            _customValue["FontName"] = filePath;
-            label->setSystemFontName(filePath);
-        },
-        owner);
         property("Font Size###FontSize", &cocos2d::Label::getSystemFontSize, &cocos2d::Label::setSystemFontSize, owner);
         property<Enum<LabelOverflow>>("Overflow###Overflow", &cocos2d::Label::getOverflow, &cocos2d::Label::setOverflow, owner);
 
