@@ -5,3 +5,6 @@
 	path = cocos2d-x-imgui
 	url = https://github.com/WuJiayiSH/cocos2d-x-imgui
 	branch = v3-docking
+[submodule "ImGuizmo"]
+	path = ImGuizmo
+	url = https://github.com/CedricGuillemet/ImGuizmo

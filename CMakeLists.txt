@@ -2,6 +2,8 @@ set(LIB_NAME cc_imgui_editor)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/cocos2d-x-imgui
+    ${CMAKE_CURRENT_SOURCE_DIR}/cocos2d-x-imgui/imgui
+    ${CMAKE_CURRENT_SOURCE_DIR}/ImGuizmo
     ${CMAKE_CURRENT_SOURCE_DIR}/invoke.hpp/headers
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${COCOS2DX_ROOT_PATH}/cocos
@@ -42,6 +44,7 @@ file(GLOB_RECURSE SOURCE
     ${CMAKE_CURRENT_LIST_DIR}/commands/AddNode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/commands/RemoveNode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/commands/CustomCommand.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ImGuizmo.cpp
 )
 file(GLOB_RECURSE HEADER
     ${CMAKE_CURRENT_LIST_DIR}/Editor.h

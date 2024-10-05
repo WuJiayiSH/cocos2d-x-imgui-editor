@@ -21,6 +21,7 @@
 #include "commands/AddNode.h"
 #include "commands/RemoveNode.h"
 #include "FileDialog.h"
+#include "ImGuizmo.h"
 
 namespace CCImEditor
 {
@@ -465,6 +466,8 @@ namespace CCImEditor
 
                 // create frame
                 ImGui_ImplCocos2dx_NewFrame();
+
+                ImGuizmo::BeginFrame();
 
                 // draw all gui
                 CCIMGUI::getInstance()->update();

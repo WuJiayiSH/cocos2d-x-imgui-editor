@@ -1,7 +1,10 @@
 #include "Viewport.h"
 #include "WidgetFactory.h"
 #include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
 #include "Editor.h"
+#include "ImGuizmo.h"
+#include "commands/CustomCommand.h"
 
 using namespace cocos2d;
 
@@ -12,6 +15,96 @@ namespace CCImEditor
         const float s_rotationSpeed = 0.005f;
         const float s_panSpeed = 1.0f;
         const float s_zoomSpeed = 50.0f;
+    }
+
+    std::function<void()> Viewport::getGizmoOperationWrapper(cocos2d::Node* node) const
+    {
+        CC_ASSERT(node);
+
+        cocos2d::WeakPtr<cocos2d::Node> weak = node;
+        if (_gizmoOperation == ImGuizmo::TRANSLATE)
+        {
+            const cocos2d::Vec3& position = node->getPosition3D();
+            return [weak, position] () {
+                weak->setPosition3D(position);
+            };
+        }
+        else if (_gizmoOperation == ImGuizmo::ROTATE)
+        {
+            const cocos2d::Quaternion& rotation = node->getRotationQuat();
+            return [weak, rotation] () {
+                weak->setRotationQuat(rotation);
+            };
+        }
+        else
+        {
+            cocos2d::Vec3 scale = { node->getScaleX(), node->getScaleY(), node->getScaleZ() };
+            return [weak, scale] () {
+                weak->setScaleX(scale.x);
+                weak->setScaleY(scale.y);
+                weak->setScaleZ(scale.z);
+            };
+        }
+    }
+
+    void Viewport::drawGizmo()
+    {
+        cocos2d::Node* selectedNode = dynamic_cast<cocos2d::Node*>(Editor::getInstance()->getUserObject("CCImGuiWidgets.NodeTree.SelectedNode"));
+        if (!selectedNode)
+            return;
+
+        cocos2d::Component* drawer = selectedNode->getComponent("CCImEditor.NodeImDrawer");
+        if (!drawer)
+            return;
+
+        if (!_camera)
+            return;
+
+        ImGuiIO& io = ImGui::GetIO();
+        const ImVec2& windowPos = ImGui::GetWindowPos();
+        ImGuizmo::SetRect(windowPos.x, windowPos.y + ImGui::GetWindowHeight() - _targetSize.y, _targetSize.x, _targetSize.y);
+
+        const cocos2d::Mat4& viewMatrix = _camera->getViewMatrix();
+        const cocos2d::Mat4& projectionMatrix = _camera->getProjectionMatrix();
+        cocos2d::Mat4 transform  = selectedNode->getNodeToParentTransform();
+
+        ImGuizmo::SetOrthographic(!_is3D);
+        ImGuizmo::SetAlternativeWindow(ImGui::GetCurrentWindow());
+        if (ImGuizmo::Manipulate(viewMatrix.m, projectionMatrix.m, _gizmoOperation, _isGizmoModeLocal ? ImGuizmo::LOCAL : ImGuizmo::WORLD, transform.m))
+        {
+            if (!_gizmoUndo)
+            {
+                _gizmoUndo = getGizmoOperationWrapper(selectedNode);
+            }
+
+            cocos2d::Vec3 position, scale;
+            cocos2d::Quaternion rotation;
+            transform.decompose(&scale, &rotation, &position);
+            if (_gizmoOperation == ImGuizmo::TRANSLATE)
+            {
+                selectedNode->setPosition3D(position);
+            }
+            else if (_gizmoOperation == ImGuizmo::ROTATE)
+            {
+                selectedNode->setRotationQuat(rotation);
+            }
+            else
+            {
+                selectedNode->setScaleX(scale.x);
+                selectedNode->setScaleY(scale.y);
+                selectedNode->setScaleZ(scale.z);
+            }
+        }
+        
+        if (_gizmoUndo && !ImGuizmo::IsUsingAny())
+        {
+            CustomCommand* cmd = CustomCommand::create(
+                getGizmoOperationWrapper(selectedNode),
+                _gizmoUndo
+            );
+            Editor::getInstance()->getCommandHistory().queue(cmd, false);
+            _gizmoUndo = nullptr;
+        }
     }
 
     void Viewport::draw(bool* open)
@@ -31,6 +124,26 @@ namespace CCImEditor
                     ImGui::EndMenu();
                 }
 
+                if (ImGui::BeginMenu("Node"))
+                {
+                    if (ImGui::BeginMenu("Gizmo"))
+                    {
+                        if (ImGui::RadioButton("Move", _gizmoOperation == ImGuizmo::TRANSLATE))
+                            _gizmoOperation = ImGuizmo::TRANSLATE;
+
+                        if (ImGui::RadioButton("Rotate", _gizmoOperation == ImGuizmo::ROTATE))
+                            _gizmoOperation = ImGuizmo::ROTATE;
+
+                        if (ImGui::RadioButton("Scale", _gizmoOperation == ImGuizmo::SCALE))
+                            _gizmoOperation = ImGuizmo::SCALE;
+
+                        ImGui::Separator();
+                        ImGui::Checkbox("Local", &_isGizmoModeLocal);
+                        ImGui::EndMenu();
+                    }
+                    ImGui::EndMenu();
+                }
+                
                 ImGui::EndMenuBar();
             }
 
@@ -44,6 +157,8 @@ namespace CCImEditor
                 const unsigned int wide = texture->getPixelsWide();
                 const unsigned int high = texture->getPixelsHigh();
                 ImGui::Image((ImTextureID)texture->getName(), ImVec2((float)wide, (float)high), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+
+                drawGizmo();
             }
 
             if (ImGui::IsWindowFocused() && _camera)
