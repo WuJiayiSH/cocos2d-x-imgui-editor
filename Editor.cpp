@@ -9,6 +9,7 @@
 #include "widgets/NodeProperties.h"
 #include "widgets/NodeTree.h"
 #include "widgets/Viewport.h"
+#include "widgets/Assets.h"
 #include "nodes/Node3D.h"
 #include "nodes/Sprite3D.h"
 #include "nodes/Node2D.h"
@@ -705,6 +706,7 @@ namespace CCImEditor
 
     void Editor::registerWidgets()
     {
+        WidgetFactory::getInstance()->registerWidget<Assets>("CCImEditor.Assets", "Assets");
         WidgetFactory::getInstance()->registerWidget<Viewport>("CCImEditor.Viewport", "Viewport");
         WidgetFactory::getInstance()->registerWidget<NodeTree>("CCImEditor.NodeTree", "Node Tree");
         WidgetFactory::getInstance()->registerWidget<NodeProperties>("CCImEditor.NodeProperties", "Node Properties");
