@@ -96,6 +96,11 @@ namespace Internal {
                     }
 
                     outFile = std::move(file);
+
+                    // TODO: A hack to return relative path to search path when loading
+                    if (type == FileDialogType::LOAD)
+                        outFile = outFile.substr(s_fileInfo.getRootPath().length());
+
                     outFileChanged = true;
                 } while (false);
             }
@@ -114,6 +119,11 @@ namespace Internal {
                 if (ImGui::Button("Yes", buttonSize))
                 {
                     outFile = s_fileInfo.getDirectory() + s_filenameBuf;
+
+                    // TODO: A hack to return relative path to search path when loading
+                    if (type == FileDialogType::LOAD)
+                        outFile = outFile.substr(s_fileInfo.getRootPath().length());
+
                     outFileChanged = true;
                     ImGui::CloseCurrentPopup();
                 }
