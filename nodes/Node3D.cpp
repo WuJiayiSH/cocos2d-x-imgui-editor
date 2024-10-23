@@ -15,18 +15,7 @@ namespace CCImEditor
         property("Position", &Node::getPosition3D, &Node::setPosition3D, getOwner());
         property("Rotation", &Node::getRotation3D, &Node::setRotation3D, getOwner());
         
-        property("Scale", 
-        [] (Node* node) -> Vec3
-        {
-            return { node->getScaleX(), node->getScaleY(), node->getScaleZ() };
-        },
-        [] (Node* node, const Vec3& scale)
-        {
-            node->setScaleX(scale.x);
-            node->setScaleY(scale.y);
-            node->setScaleZ(scale.z);
-        },
-        getOwner(), 0.01f);
+        property("Scale", &Node::getScale3D, &Node::setScale3D, getOwner());
 
         property("Tag", &Node::getTag, &Node::setTag, getOwner());
         property("Visible", &Node::isVisible, &Node::setVisible, getOwner());
