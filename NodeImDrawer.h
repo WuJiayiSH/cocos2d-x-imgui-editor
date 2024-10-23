@@ -2,7 +2,6 @@
 #define __CCIMEDITOR_NODEIMDRAWER_H__
 
 #include "cocos2d.h"
-#include "invoke.hpp/invoke.hpp"
 #include "PropertyImDrawer.h"
 #include "commands/CustomCommand.h"
 
@@ -55,7 +54,7 @@ namespace CCImEditor
                 }
             }
             
-            return invoke_hpp::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
+            return std::invoke(std::forward<Getter>(getter), std::forward<Object>(object));
         }
 
         // Return a setter warpper which can be used in command history.
@@ -78,7 +77,7 @@ namespace CCImEditor
         template <class DrawerType = Internal::DefaultArgumentTag, class Getter, class Setter, class Object, class... Args>
         void property(const char *label, Getter &&getter, Setter &&setter, Object&& object, Args &&...args)
         {
-            using PropertyTypeMaybeQualified = typename invoke_hpp::invoke_result_t<decltype(getter), Object>;
+            using PropertyTypeMaybeQualified = typename std::invoke_result_t<decltype(getter), Object>;
             using PropertyType = typename std::remove_cv<typename std::remove_reference<PropertyTypeMaybeQualified>::type>::type;
 
             // use PropertyType if DrawerType is not specified
@@ -118,7 +117,7 @@ namespace CCImEditor
                         }
 
                         PropertyImDrawer<PropertyOrDrawerType>::serialize(_customValue[key], v);
-                        invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                        std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
                     }
                 }
 
@@ -146,7 +145,7 @@ namespace CCImEditor
                     if (PropertyImDrawer<PropertyOrDrawerType>::deserialize(it->second, v))
                     {
                         PropertyImDrawer<PropertyOrDrawerType>::serialize(_customValue[key], v);
-                        invoke_hpp::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                        std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
                     }
                 }
             }
