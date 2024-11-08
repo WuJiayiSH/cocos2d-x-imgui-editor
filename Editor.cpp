@@ -28,6 +28,7 @@ namespace CCImEditor
 {
     namespace
     {
+        cocos2d::RefPtr<Editor> s_instance;
         static cocos2d::RefPtr<cocos2d::Node> s_nextEditingNode;
         static std::function<void(std::string)> s_saveFileCallback;
         static std::function<void(std::string)> s_openFileCallback;
@@ -574,12 +575,15 @@ namespace CCImEditor
 
     Editor* Editor::getInstance()
     {
-        static cocos2d::RefPtr<Editor> instance = nullptr;
+        if (!s_instance)
+            s_instance = cocos2d::utils::createHelper(&Editor::init);
 
-        if (!instance)
-            instance = cocos2d::utils::createHelper(&Editor::init);
+        return s_instance;
+    }
 
-        return instance;
+    bool Editor::isInstancePresent()
+    {
+        return s_instance && s_instance->getParent() != nullptr;
     }
 
     bool Editor::init()

@@ -53,6 +53,7 @@ namespace CCImEditor
         CommandHistory& getCommandHistory() { return _commandHistory; };
 
         static cocos2d::Node* loadFile(const std::string& file);
+        static bool isInstancePresent();
     
     CC_CONSTRUCTOR_ACCESS: 
         Editor();
