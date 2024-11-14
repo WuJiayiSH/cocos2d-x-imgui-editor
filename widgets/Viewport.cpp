@@ -40,9 +40,7 @@ namespace CCImEditor
         {
             cocos2d::Vec3 scale = { node->getScaleX(), node->getScaleY(), node->getScaleZ() };
             return [weak, scale] () {
-                weak->setScaleX(scale.x);
-                weak->setScaleY(scale.y);
-                weak->setScaleZ(scale.z);
+                weak->setScale3D(scale);
             };
         }
     }
@@ -90,9 +88,7 @@ namespace CCImEditor
             }
             else
             {
-                selectedNode->setScaleX(scale.x);
-                selectedNode->setScaleY(scale.y);
-                selectedNode->setScaleZ(scale.z);
+                selectedNode->setScale3D(scale);
             }
         }
         

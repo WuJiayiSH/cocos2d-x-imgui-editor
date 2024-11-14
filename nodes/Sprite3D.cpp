@@ -26,9 +26,7 @@ namespace CCImEditor
                 // initWithFile may have changed position, rotation and scale. Set them back.
                 node->setPosition3D(position);
                 node->setRotationQuat(rotation);
-                node->setScaleX(scale.x);
-                node->setScaleY(scale.y);
-                node->setScaleZ(scale.z);
+                node->setScale3D(scale);
             },
             owner);
 
