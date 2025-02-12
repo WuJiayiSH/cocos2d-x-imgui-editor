@@ -49,6 +49,26 @@ namespace CCImEditor
             return nullptr;
         }
 
+        void addNode(cocos2d::Node* parent, cocos2d::Node* child)
+        {
+            AddNode* command = AddNode::create(parent, child);
+            if (!command)
+                return;
+
+            std::string name = child->getName();
+            if (!name.empty())
+            {
+                int count = 1;
+                while (parent->getChildByName(name) != nullptr)
+                {
+                    name = cocos2d::StringUtils::format("%s (%d)", child->getName().c_str(), count++);
+                }
+                child->setName(name);
+            }
+
+            Editor::getInstance()->getCommandHistory().queue(command);
+        }
+
         bool canHaveChildren(cocos2d::Node* node)
         {
             if (node)
@@ -382,8 +402,8 @@ namespace CCImEditor
                                 {
                                     if (cocos2d::Node* child = nodeType.create())
                                     {
-                                        AddNode* command = AddNode::create(parent, child);
-                                        Editor::getInstance()->getCommandHistory().queue(command);
+                                        child->setName(displayName);
+                                        addNode(parent, child);
                                     }
                                 }
                                 else
@@ -848,10 +868,7 @@ namespace CCImEditor
             cocos2d::Node* node = nullptr;
             if (parent && deserializeNode(&node, _clipboardValue))
             {
-                if (AddNode* cmd = AddNode::create(parent, node))
-                {
-                    _commandHistory.queue(cmd);
-                }
+                addNode(parent, node);
             }
         }, 0, "paste");
     }
