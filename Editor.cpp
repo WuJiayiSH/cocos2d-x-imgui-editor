@@ -384,7 +384,8 @@ namespace CCImEditor
 
                         if (isMenuOpen)
                         {
-                            if (ImGui::MenuItem(displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0)))
+                            const char* shortName = displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0);
+                            if (ImGui::MenuItem(shortName))
                             {
                                 // add to selected node if possible
                                 cocos2d::Node* parent = nullptr;
@@ -402,7 +403,7 @@ namespace CCImEditor
                                 {
                                     if (cocos2d::Node* child = nodeType.create())
                                     {
-                                        child->setName(displayName);
+                                        child->setName(shortName);
                                         addNode(parent, child);
                                     }
                                 }
