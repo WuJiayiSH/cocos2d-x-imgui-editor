@@ -303,6 +303,32 @@ namespace CCImEditor
                     }
 
                     ImGui::Separator();
+
+                    if (ImGui::MenuItem("Import File..."))
+                    {
+                        Editor::getInstance()->openLoadFileDialog();
+                        s_openFileCallback = [](const std::string file)
+                        {
+                            if (cocos2d::Node* importedNode = Editor::loadFile(file))
+                            {
+                                cocos2d::Node* parent = nullptr;
+                                if (cocos2d::Node* node = getSelectedNode())
+                                {
+                                    if (canHaveChildren(node))
+                                        parent = node;
+                                }
+
+                                if (!parent)
+                                    parent = Editor::getInstance()->getEditingNode();
+                                    
+                                if (parent)
+                                    addNode(parent, importedNode);
+                            }
+                        };
+                    }
+
+                    ImGui::Separator();
+
                     if (ImGui::BeginMenu("Preferences"))
                     {
                         if (ImGui::BeginMenu("Style"))
