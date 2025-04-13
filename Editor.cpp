@@ -478,6 +478,28 @@ namespace CCImEditor
                     }
                     ImGui::EndMenu();
                 }
+
+                if (ImGui::BeginMenu("Run"))
+                {
+                    if (ImGui::MenuItem("Run With Empty Scene"))
+                    {
+                        if (!s_currentFile.empty())
+                        {
+                            serializeEditingNodeToFile(s_currentFile);
+                            if (cocos2d::Node* node = Editor::loadFile(s_currentFile))
+                            {
+                                cocos2d::Scene* scene = cocos2d::Scene::create();
+                                scene->addChild(node);
+                                cocos2d::Director::getInstance()->replaceScene(scene);
+                            }
+                        }
+                        else
+                        {
+                            Editor::getInstance()->alert("You must save your change before run");
+                        }
+                    }
+                    ImGui::EndMenu();
+                }
                 ImGui::EndMenuBar();
             }
 
