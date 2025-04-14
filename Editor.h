@@ -81,6 +81,7 @@ namespace CCImEditor
         CommandHistory _commandHistory;
 
         std::string _alertText;
+        std::string _windowTitle;
     };
 }
 

@@ -1007,14 +1007,20 @@ namespace CCImEditor
     {
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_MAC) || (CC_TARGET_PLATFORM == CC_PLATFORM_WIN32) || (CC_TARGET_PLATFORM == CC_PLATFORM_LINUX) || (CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN)
         cocos2d::GLView* glView  =cocos2d::Director::getInstance()->getOpenGLView();
+        std::string title;
         if (s_currentFile.empty())
         {
-            glfwSetWindowTitle(static_cast<cocos2d::GLViewImpl*>(glView)->getWindow(), glView->getViewName().c_str());
+            title = glView->getViewName();
         }
         else
         {
-            std::string title = cocos2d::StringUtils::format("%s%s - %s", s_currentFile.c_str(), _commandHistory.atSavePoint()?"":"*", glView->getViewName().c_str());
-            glfwSetWindowTitle(static_cast<cocos2d::GLViewImpl*>(glView)->getWindow(), title.c_str());
+            title = cocos2d::StringUtils::format("%s%s - %s", s_currentFile.c_str(), _commandHistory.atSavePoint()?"":"*", glView->getViewName().c_str());
+        }
+
+        if (title != _windowTitle)
+        {
+            _windowTitle = std::move(title);
+            glfwSetWindowTitle(static_cast<cocos2d::GLViewImpl*>(glView)->getWindow(), _windowTitle.c_str());
         }
 #endif
     }
