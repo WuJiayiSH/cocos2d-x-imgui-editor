@@ -90,5 +90,19 @@ namespace CCImEditor
         _commands.clear();
         _pendingCallbacks.clear();
         _iterator = _commands.end();
+        _savePoint = _commands.end();
+    }
+
+    void CommandHistory::setSavePoint()
+    {
+        _savePoint = _iterator;
+    }
+
+    bool CommandHistory::atSavePoint() const
+    {
+        if (!_commands.empty() && _savePoint == _commands.end())
+            return _iterator == _commands.begin();
+
+        return _iterator == _savePoint;
     }
 }

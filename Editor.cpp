@@ -23,6 +23,9 @@
 #include "commands/RemoveNode.h"
 #include "FileDialog.h"
 #include "ImGuizmo.h"
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_MAC) || (CC_TARGET_PLATFORM == CC_PLATFORM_WIN32) || (CC_TARGET_PLATFORM == CC_PLATFORM_LINUX) || (CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN)
+#include "platform/desktop/CCGLViewImpl-desktop.h"
+#endif
 
 namespace CCImEditor
 {
@@ -189,7 +192,10 @@ namespace CCImEditor
             if (serializeNode(Editor::getInstance()->getEditingNode(), root))
             {
                 if (cocos2d::FileUtils::getInstance()->writeToFile(root, file))
+                {
                     setCurrentFile(file);
+                    Editor::getInstance()->getCommandHistory().setSavePoint();
+                }
                 else
                     Editor::getInstance()->alert("Failed to write to file: %s", file.c_str());
             }
@@ -779,6 +785,8 @@ namespace CCImEditor
             setEditingNode(s_nextEditingNode);
             s_nextEditingNode = nullptr;
         }
+
+        updateWindowTitle();
     }
 
     void Editor::addWidget(Widget* widget)
@@ -993,5 +1001,21 @@ namespace CCImEditor
         }
 
         return nullptr;
+    }
+
+    void Editor::updateWindowTitle()
+    {
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_MAC) || (CC_TARGET_PLATFORM == CC_PLATFORM_WIN32) || (CC_TARGET_PLATFORM == CC_PLATFORM_LINUX) || (CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN)
+        cocos2d::GLView* glView  =cocos2d::Director::getInstance()->getOpenGLView();
+        if (s_currentFile.empty())
+        {
+            glfwSetWindowTitle(static_cast<cocos2d::GLViewImpl*>(glView)->getWindow(), glView->getViewName().c_str());
+        }
+        else
+        {
+            std::string title = cocos2d::StringUtils::format("%s%s - %s", s_currentFile.c_str(), _commandHistory.atSavePoint()?"":"*", glView->getViewName().c_str());
+            glfwSetWindowTitle(static_cast<cocos2d::GLViewImpl*>(glView)->getWindow(), title.c_str());
+        }
+#endif
     }
 }

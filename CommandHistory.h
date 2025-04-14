@@ -19,6 +19,8 @@ namespace CCImEditor
 
         bool canUndo(int step = 1) const;
         bool canRedo(int step = 1) const;
+        bool atSavePoint() const;
+        void setSavePoint();
         void undo(int step = 1);
         void redo(int step = 1);
 
@@ -30,6 +32,7 @@ namespace CCImEditor
         typedef std::list<cocos2d::RefPtr<Command>> CommandList;
         CommandList _commands;
         CommandList::iterator _iterator;
+        CommandList::iterator _savePoint;
         const size_t _maxSize;
     };
 }

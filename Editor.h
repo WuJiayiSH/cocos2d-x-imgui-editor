@@ -55,6 +55,8 @@ namespace CCImEditor
         static cocos2d::Node* loadFile(const std::string& file);
         static bool isInstancePresent();
     
+        void updateWindowTitle();
+
     CC_CONSTRUCTOR_ACCESS: 
         Editor();
         ~Editor();
