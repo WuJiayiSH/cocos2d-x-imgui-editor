@@ -17,6 +17,7 @@ namespace CCImEditor
         std::function<void()> getGizmoOperationWrapper(cocos2d::Node* node) const;
         bool isDirty() const;
         cocos2d::Texture2D* getRenderTexture() const;
+        void selectRecursively(cocos2d::Node* node, const cocos2d::Ray& ray) const;
 
         cocos2d::RefPtr<cocos2d::Camera> _camera;
         ImVec2 _targetSize = {1.0f, 1.0f};

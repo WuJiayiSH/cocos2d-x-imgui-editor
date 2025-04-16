@@ -196,6 +196,23 @@ namespace CCImEditor
                         _camera->setPosition(pos);
                     }
                 }
+
+                if (ImGui::IsMouseClicked(0))
+                {
+                    const ImVec2& windowPos = ImGui::GetWindowPos();
+
+                    const Vec2 pointMouse(io.MousePos.x - windowPos.x, windowPos.y + ImGui::GetWindowHeight() - io.MousePos.y);
+                    const Vec3 pointNear(pointMouse.x, pointMouse.y, -1), pointFar(pointMouse.x, pointMouse.y, 1);
+                    const Size targetSize = Size(_targetSize.x, _targetSize.y);
+
+                    Ray ray;
+                    _camera->unprojectGL(targetSize, &pointNear, &ray._origin);
+                    _camera->unprojectGL(targetSize, &pointFar, &ray._direction);
+                    ray._direction.subtract(ray._origin);
+                    ray._direction.normalize();
+
+                    selectRecursively(Editor::getInstance()->getEditingNode(), ray);
+                }
             }
         }
         
@@ -293,5 +310,38 @@ namespace CCImEditor
             return nullptr;
 
         return renderTarget->getTexture();
+    }
+
+    void Viewport::selectRecursively(Node* node, const Ray& ray) const
+    {
+        Vector<Node*>& children = node->getChildren();
+        for (Node* child : children)
+        {
+            if (child->getComponent("CCImEditor.NodeImDrawer"))
+            {
+                if (Sprite3D* sprite3D = dynamic_cast<Sprite3D*>(child))
+                {
+                    if (ray.intersects(sprite3D->getAABB()))
+                    {
+                        Editor::getInstance()->setUserObject("CCImGuiWidgets.NodeTree.SelectedNode", child);
+                    }
+                }
+                else
+                {
+                    const Mat4& transform = child->getNodeToWorldTransform();
+                    const Size& contentSize = child->getContentSize();
+                    AABB aabb;
+                    transform.transformPoint(Vec3(0, 0, 0), &aabb._min);
+                    transform.transformPoint(Vec3(contentSize.width, contentSize.height, 0), &aabb._max);
+                    
+                    if (ray.intersects(aabb))
+                    {
+                        Editor::getInstance()->setUserObject("CCImGuiWidgets.NodeTree.SelectedNode", child);
+                    }
+                }
+            }
+
+            selectRecursively(child, ray);
+        }
     }
 }
