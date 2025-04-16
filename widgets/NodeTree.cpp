@@ -14,6 +14,8 @@ namespace CCImEditor
 
         static Node* s_selectedNode = nullptr;
 
+        static bool s_shouldExpandSelectedNode = false;
+
         void drawNode(Node* node)
         {
             const std::string& desc = node->getDescription();
@@ -32,7 +34,22 @@ namespace CCImEditor
 
             if (!node->getChildrenCount())
                 flags |= ImGuiTreeNodeFlags_Leaf;
-            
+
+            if (s_shouldExpandSelectedNode)
+            {
+                Node* current = s_selectedNode;
+                while (Node* parent = current->getParent())
+                {
+                    if (parent == node)
+                    {
+                        ImGui::SetNextItemOpen(true);
+                        break;
+                    }
+
+                    current = parent;
+                }
+            }
+
             bool open = ImGui::TreeNodeEx(
                 (void*)node,
                 flags,
@@ -62,7 +79,12 @@ namespace CCImEditor
         ImGui::SetNextWindowSize(ImVec2(250, 400), ImGuiCond_FirstUseEver);
         if (ImGui::Begin(getWindowName().c_str(), open))
         {
-            s_selectedNode = dynamic_cast<Node*>(Editor::getInstance()->getUserObject(s_selectedNodePath));
+            Node* selectedNode = dynamic_cast<Node*>(Editor::getInstance()->getUserObject(s_selectedNodePath));
+            if (selectedNode != s_selectedNode)
+            {
+                s_shouldExpandSelectedNode = true;
+            }
+            s_selectedNode = selectedNode;
 
             if (Editor::getInstance()->isDebugMode())
             {   
@@ -75,6 +97,8 @@ namespace CCImEditor
             {
                 drawNode(editingNode);
             }
+
+            s_shouldExpandSelectedNode = false;
         }
 
         ImGui::End();
