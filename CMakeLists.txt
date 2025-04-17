@@ -6,6 +6,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/ImGuizmo
     ${CMAKE_CURRENT_SOURCE_DIR}/invoke.hpp/headers
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${COCOS2DX_ROOT_PATH}
     ${COCOS2DX_ROOT_PATH}/cocos
     ${COCOS2DX_ROOT_PATH}/cocos/base
     ${COCOS2DX_ROOT_PATH}/cocos/platform

@@ -17,6 +17,30 @@ namespace CCImEditor
         const float s_zoomSpeed = 50.0f;
     }
 
+    bool Viewport::init(const std::string& name, const std::string& windowName, uint32_t mask)
+    {
+        if (!Widget::init(name, windowName, mask))
+            return false;
+
+        _drawGrid = DrawNode3D::create();
+        if (!_drawGrid)
+            return false;
+
+        _drawGrid->setName(windowName);
+        _drawGrid->setCameraMask(1 << 15);
+        Editor::getInstance()->addChild(_drawGrid);
+        return true;
+    }
+
+    Viewport::~Viewport()
+    {
+        if (_camera)
+            _camera->removeFromParent();
+
+        if (_drawGrid)
+            _drawGrid->removeFromParent();
+    }
+
     std::function<void()> Viewport::getGizmoOperationWrapper(cocos2d::Node* node) const
     {
         CC_ASSERT(node);
@@ -117,6 +141,12 @@ namespace CCImEditor
                 if (ImGui::BeginMenu("View"))
                 {
                     ImGui::Checkbox("3D", &_is3D);
+
+                    if (ImGui::Checkbox("Show Grid", &_showGrid))
+                    {
+                        drawGrid();
+                    }
+
                     ImGui::EndMenu();
                 }
 
@@ -218,11 +248,51 @@ namespace CCImEditor
         
         ImGui::End();
     }
+    
+    void Viewport::drawGrid()
+    {
+        _drawGrid->clear();
+
+        if (_showGrid)
+        {
+            for (int x = -5000; x <= 5000; x+=100)
+            {
+                float offset = float(x);
+                if (_is3D)
+                {
+                    _drawGrid->drawLine(Vec3(offset, 0, -5000), Vec3(offset, 0, 5000), Color4F::GRAY);
+                    _drawGrid->drawLine(Vec3(-5000, 0, offset), Vec3(5000, 0, offset), Color4F::GRAY);
+                }
+                else
+                {
+                    _drawGrid->drawLine(Vec3(offset, -5000, 0), Vec3(offset, 5000, 0), Color4F::GRAY);
+                    _drawGrid->drawLine(Vec3(-5000, offset, 0), Vec3(5000, offset, 0), Color4F::GRAY);
+                }
+            }
+
+            for (int x = -5000; x <= 5000; x+=1000)
+            {
+                float offset = float(x);
+                if (_is3D)
+                {
+                    _drawGrid->drawLine(Vec3(offset, 0, -5000), Vec3(offset, 0, 5000), Color4F::WHITE);
+                    _drawGrid->drawLine(Vec3(-5000, 0, offset), Vec3(5000, 0, offset), Color4F::WHITE);
+                }
+                else
+                {
+                    _drawGrid->drawLine(Vec3(offset, -5000, 0), Vec3(offset, 5000, 0), Color4F::WHITE);
+                    _drawGrid->drawLine(Vec3(-5000, offset, 0), Vec3(5000, offset, 0), Color4F::WHITE);
+                }
+            }
+        }
+    }
 
     void Viewport::update(float)
     {
         if (!isDirty())
             return;
+
+        drawGrid();
 
         Camera* camera = nullptr;
         if (_is3D)
