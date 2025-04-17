@@ -12,7 +12,7 @@ namespace CCImEditor
     {
         static const std::string s_selectedNodePath = "CCImGuiWidgets.NodeTree.SelectedNode";
 
-        static Node* s_selectedNode = nullptr;
+        static WeakPtr<Node> s_selectedNode = nullptr;
 
         static bool s_shouldExpandSelectedNode = false;
 

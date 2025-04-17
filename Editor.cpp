@@ -401,7 +401,7 @@ namespace CCImEditor
                     ImGui::EndMenu();
                 }
 
-                if (ImGui::BeginMenu("Add"))
+                if (ImGui::BeginMenu("Node"))
                 {
                     const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
                     for (NodeFactory::NodeTypeMap::const_iterator it = nodeTypes.begin(); it != nodeTypes.end(); it++)
