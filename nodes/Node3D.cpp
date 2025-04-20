@@ -10,21 +10,22 @@ namespace CCImEditor
         if (!drawHeader("Node3D"))
             return;
 
-        property("Name", &Node::getName, &Node::setName, getOwner());
+        cocos2d::Node* owner = static_cast<cocos2d::Node*>(getOwner());
+        property("Name", &Node::getName, &Node::setName, owner);
 
-        property("Position", &Node::getPosition3D, &Node::setPosition3D, getOwner());
-        property("Rotation", &Node::getRotation3D, &Node::setRotation3D, getOwner());
+        property("Position", &Node::getPosition3D, &Node::setPosition3D, owner);
+        property("Rotation", &Node::getRotation3D, &Node::setRotation3D, owner);
         
-        property("Scale", &Node::getScale3D, &Node::setScale3D, getOwner());
+        property("Scale", &Node::getScale3D, &Node::setScale3D, owner);
 
-        property("Tag", &Node::getTag, &Node::setTag, getOwner());
-        property("Visible", &Node::isVisible, &Node::setVisible, getOwner());
+        property("Tag", &Node::getTag, &Node::setTag, owner);
+        property("Visible", &Node::isVisible, &Node::setVisible, owner);
         
         property<Mask<CameraFlag>>("Camera Mask###CameraMask", &Node::getCameraMask,
         [] (Node* node, unsigned short cameraMask)
         {
             cameraMask |= (1 << 15);
             node->setCameraMask(cameraMask);
-        }, getOwner());
+        }, owner);
     }
 }

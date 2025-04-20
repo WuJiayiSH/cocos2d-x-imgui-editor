@@ -14,7 +14,7 @@ namespace CCImEditor
         struct DefaultGetterBase{};
     }
 
-    class NodeImDrawer : public cocos2d::Component
+    class ImPropertyGroup : public cocos2d::Ref
     {
     public:
         enum class Context
@@ -30,8 +30,8 @@ namespace CCImEditor
         void deserialize(const cocos2d::ValueMap&);
         const std::string& getTypeName() const {return _typeName;}
         const std::string& getShortName() const {return _shortName;}
-        bool init() override;
-
+        virtual bool init();
+        cocos2d::Ref* getOwner() const {return _owner;}
     private:
         // Try to get value from _customValue if getter is a DefaultGetterBase.
         // If getter is not a DefaultGetterBase or value not found in _customValue,
@@ -167,6 +167,7 @@ namespace CCImEditor
         std::string _shortName;
         cocos2d::ValueMap* _contextValue = nullptr;
         std::function<void()> _undo;
+        cocos2d::WeakPtr<cocos2d::Ref> _owner;
     };
 
     template <class T>
@@ -188,6 +189,25 @@ namespace CCImEditor
         }
 
         T _defaultValue;
+    };
+
+    class NodeImDrawer : public cocos2d::Component
+    {
+    public:
+        friend class NodeFactory;
+        static NodeImDrawer* create();
+        bool init() override;
+
+        void draw() {_nodePropertyGroup->draw();}
+        void serialize(cocos2d::ValueMap& target){_nodePropertyGroup->serialize(target);}
+        void deserialize(const cocos2d::ValueMap& source){_nodePropertyGroup->deserialize(source);}
+        const std::string& getTypeName() {return _nodePropertyGroup->getTypeName();}
+        const std::string& getShortName() const {return _nodePropertyGroup->getShortName();}
+
+        void setNodePropertyGroup(ImPropertyGroup* group) {_nodePropertyGroup = group;}
+
+    private:
+        cocos2d::RefPtr<ImPropertyGroup> _nodePropertyGroup;
     };
 }
 

@@ -5,7 +5,7 @@
 
 namespace CCImEditor
 {
-    class Node2D: public NodeImDrawer
+    class Node2D: public ImPropertyGroup
     {
     public:
         void draw() override;

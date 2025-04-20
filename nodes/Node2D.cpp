@@ -10,16 +10,17 @@ namespace CCImEditor
         if (!drawHeader("Node2D"))
             return;
 
-        property("Name", &Node::getName, &Node::setName, getOwner());
+        cocos2d::Node* owner = static_cast<cocos2d::Node*>(getOwner());
+        property("Name", &Node::getName, &Node::setName, owner);
 
         property("Position", 
             static_cast<const cocos2d::Vec2&(cocos2d::Node::*)() const>(&Node::getPosition), 
             static_cast<void(cocos2d::Node::*)(const cocos2d::Vec2&)>(&Node::setPosition),
-            getOwner());
+            owner);
 
-        property("Content Size###ContentSize", &Node::getContentSize, &Node::setContentSize, getOwner());
+        property("Content Size###ContentSize", &Node::getContentSize, &Node::setContentSize, owner);
 
-        property("Anchor Point###AnchorPoint", &Node::getAnchorPoint, &Node::setAnchorPoint, getOwner(), 0.01f);
+        property("Anchor Point###AnchorPoint", &Node::getAnchorPoint, &Node::setAnchorPoint, owner, 0.01f);
 
         property("Scale", 
         [] (Node* node) -> Vec2
@@ -31,9 +32,9 @@ namespace CCImEditor
             node->setScaleX(scale.x);
             node->setScaleY(scale.y);
         },
-        getOwner(), 0.01f);
+        owner, 0.01f);
 
-        property("Rotation", &Node::getRotation, &Node::setRotation, getOwner());
+        property("Rotation", &Node::getRotation, &Node::setRotation, owner);
 
         property("Skew", 
         [] (Node* node) -> Vec2
@@ -45,18 +46,18 @@ namespace CCImEditor
             node->setSkewX(skew.x);
             node->setSkewY(skew.y);
         },
-        getOwner(), 0.1f);
+        owner, 0.1f);
 
-        property("Tag", &Node::getTag, &Node::setTag, getOwner());
-        property("Local Z Order###LocalZOrder", &Node::getLocalZOrder, &Node::setLocalZOrder, getOwner());
-        property("Visible", &Node::isVisible, &Node::setVisible, getOwner());
+        property("Tag", &Node::getTag, &Node::setTag, owner);
+        property("Local Z Order###LocalZOrder", &Node::getLocalZOrder, &Node::setLocalZOrder, owner);
+        property("Visible", &Node::isVisible, &Node::setVisible, owner);
         
         property<Mask<CameraFlag>>("Camera Mask###CameraMask", &Node::getCameraMask,
         [] (Node* node, unsigned short cameraMask)
         {
             cameraMask |= (1 << 15);
             node->setCameraMask(cameraMask);
-        }, getOwner());
+        }, owner);
 
         property("Color", 
         [] (Node* node) -> Color4B
@@ -69,10 +70,10 @@ namespace CCImEditor
             node->setColor(Color3B(color.r, color.g, color.b));
             node->setOpacity(color.a);
         },
-        getOwner());
+        owner);
 
-        property("Cascade Color Enabled###CascadeColorEnabled", &Node::isCascadeColorEnabled, &Node::setCascadeColorEnabled, getOwner());
-        property("Cascade Opacity Enabled###CascadeOpacityEnabled", &Node::isCascadeOpacityEnabled, &Node::setCascadeOpacityEnabled, getOwner());
-        property("Opacity Modify RGB###OpacityModifyRGB", &Node::isOpacityModifyRGB, &Node::setOpacityModifyRGB, getOwner());
+        property("Cascade Color Enabled###CascadeColorEnabled", &Node::isCascadeColorEnabled, &Node::setCascadeColorEnabled, owner);
+        property("Cascade Opacity Enabled###CascadeOpacityEnabled", &Node::isCascadeOpacityEnabled, &Node::setCascadeOpacityEnabled, owner);
+        property("Opacity Modify RGB###OpacityModifyRGB", &Node::isOpacityModifyRGB, &Node::setOpacityModifyRGB, owner);
     }
 }

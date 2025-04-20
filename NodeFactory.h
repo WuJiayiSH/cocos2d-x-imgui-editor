@@ -42,7 +42,7 @@ namespace CCImEditor
             std::function<cocos2d::Node*()> _constructor;
         };
     
-        template <typename NodeImDrawerType, typename OwnerType>
+        template <typename NodePropertyGroupType, typename OwnerType>
         void registerNode(const char* name, const char* displayName, uint32_t mask = 0)
         {
             std::function<cocos2d::Node*()> constructor = [name, displayName]() -> cocos2d::Node* {
@@ -50,8 +50,8 @@ namespace CCImEditor
                 if (!owner)
                     return nullptr;
 
-                NodeImDrawerType* nodeImDrawer = new (std::nothrow)NodeImDrawerType();
-                if (!nodeImDrawer)
+                NodePropertyGroupType* nodePropertyGroup = new (std::nothrow)NodePropertyGroupType();
+                if (!nodePropertyGroup)
                     return nullptr;
 
                 const char* shortName = displayName;
@@ -59,16 +59,20 @@ namespace CCImEditor
                 {
                     shortName = tmp + 1;
                 }
-                nodeImDrawer->_shortName = shortName;
-                nodeImDrawer->_typeName = name;
+                nodePropertyGroup->_shortName = shortName;
+                nodePropertyGroup->_typeName = name;
 
-                if (!nodeImDrawer->init())
+                if (!nodePropertyGroup->init())
                 {
-                    delete nodeImDrawer;
+                    delete nodePropertyGroup;
                     return nullptr;
                 }
+                nodePropertyGroup->_owner = owner;
+                nodePropertyGroup->autorelease();
 
-                owner->addComponent(nodeImDrawer);
+                NodeImDrawer* drawer = NodeImDrawer::create();
+                drawer->_nodePropertyGroup = nodePropertyGroup;
+                owner->addComponent(drawer);
                 owner->setCameraMask(owner->getCameraMask() | (1 << 15));
                 return owner;
             };

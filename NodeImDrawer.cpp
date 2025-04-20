@@ -2,7 +2,7 @@
 
 namespace CCImEditor
 {
-    void NodeImDrawer::serialize(cocos2d::ValueMap& target)
+    void ImPropertyGroup::serialize(cocos2d::ValueMap& target)
     {
         _context = Context::SERIALIZE;
         _contextValue = &target;
@@ -11,13 +11,30 @@ namespace CCImEditor
         _context = Context::DRAW;
     }
 
-    void NodeImDrawer::deserialize(const cocos2d::ValueMap& source)
+    void ImPropertyGroup::deserialize(const cocos2d::ValueMap& source)
     {
         _context = Context::DESERIALIZE;
         _contextValue = const_cast<cocos2d::ValueMap*>(&source); // save only, deserializer only take const-qualified source
         draw();
         _contextValue = nullptr;
         _context = Context::DRAW;
+    }
+
+    bool ImPropertyGroup::init()
+    {
+        return true;
+    }
+
+    NodeImDrawer* NodeImDrawer::create() {
+        NodeImDrawer* obj = new (std::nothrow)NodeImDrawer();
+        if (obj && obj->init())
+        {
+            obj->autorelease();
+            return obj;
+        }
+
+        delete obj;
+        return nullptr;
     }
 
     bool NodeImDrawer::init()
