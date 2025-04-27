@@ -47,6 +47,10 @@ file(GLOB_RECURSE SOURCE
     ${CMAKE_CURRENT_LIST_DIR}/commands/RemoveNode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/commands/CustomCommand.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ImGuizmo.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ComponentFactory.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/components/Component.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/commands/AddComponent.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/commands/RemoveComponent.cpp
 )
 file(GLOB_RECURSE HEADER
     ${CMAKE_CURRENT_LIST_DIR}/Editor.h
@@ -77,6 +81,10 @@ file(GLOB_RECURSE HEADER
     ${CMAKE_CURRENT_LIST_DIR}/commands/AddNode.h
     ${CMAKE_CURRENT_LIST_DIR}/commands/RemoveNode.h
     ${CMAKE_CURRENT_LIST_DIR}/commands/CustomCommand.h
+    ${CMAKE_CURRENT_LIST_DIR}/ComponentFactory.h
+    ${CMAKE_CURRENT_LIST_DIR}/components/Component.h
+    ${CMAKE_CURRENT_LIST_DIR}/commands/AddComponent.h
+    ${CMAKE_CURRENT_LIST_DIR}/commands/RemoveComponent.h
 )
 
 add_library(${LIB_NAME} STATIC ${SOURCE} ${HEADER})

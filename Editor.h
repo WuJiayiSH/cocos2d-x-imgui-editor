@@ -32,6 +32,7 @@ namespace CCImEditor
 
         void registerWidgets();
         void registerNodes();
+        void registerComponents();
         
         void visit(cocos2d::Renderer *renderer, const cocos2d::Mat4 &parentTransform, uint32_t parentFlags) override;
 

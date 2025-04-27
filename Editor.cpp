@@ -1,4 +1,5 @@
 #include "Editor.h"
+#include "ComponentFactory.h"
 #include "NodeFactory.h"
 #include "WidgetFactory.h"
 #include "CCIMGUI.h"
@@ -21,6 +22,9 @@
 #include "nodes/Geometry.h"
 #include "commands/AddNode.h"
 #include "commands/RemoveNode.h"
+#include "commands/AddComponent.h"
+#include "commands/RemoveComponent.h"
+#include "components/Component.h"
 #include "FileDialog.h"
 #include "ImGuizmo.h"
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_MAC) || (CC_TARGET_PLATFORM == CC_PLATFORM_WIN32) || (CC_TARGET_PLATFORM == CC_PLATFORM_LINUX) || (CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN)
@@ -67,6 +71,27 @@ namespace CCImEditor
                     name = cocos2d::StringUtils::format("%s (%d)", child->getName().c_str(), count++);
                 }
                 child->setName(name);
+            }
+
+            Editor::getInstance()->getCommandHistory().queue(command);
+        }
+
+        void addComponent(cocos2d::Node* parent, ImPropertyGroup* child)
+        {
+            AddComponent* command = AddComponent::create(parent, child);
+            if (!command)
+                return;
+
+            cocos2d::Component* component = static_cast<cocos2d::Component*>(child->getOwner());
+            std::string name = component->getName();
+            if (!name.empty())
+            {
+                int count = 1;
+                while (parent->getComponent(name) != nullptr)
+                {
+                    name = cocos2d::StringUtils::format("%s (%d)", component->getName().c_str(), count++);
+                }
+                component->setName(name);
             }
 
             Editor::getInstance()->getCommandHistory().queue(command);
@@ -442,6 +467,40 @@ namespace CCImEditor
                                 else
                                 {
                                     CCLOGERROR("Failed to add node, editing node does not exist!");
+                                }
+                            }
+                        }
+
+                        if (lastSlash != std::string::npos)
+                            ImGuiHelper::EndNestedMenu();
+                    }
+                    ImGui::EndMenu();
+                }
+
+                if (ImGui::BeginMenu("Component"))
+                {
+                    const ComponentFactory::ComponentTypeMap& componentTypes = ComponentFactory::getInstance()->getComponentTypes();
+                    for (const auto& [_, componentType] : componentTypes)
+                    {
+                        const std::string& displayName = componentType.getDisplayName();
+                        const size_t lastSlash = displayName.find_last_of('/');
+                        
+                        bool isMenuOpen = true;
+                        if (lastSlash != std::string::npos)
+                            isMenuOpen = ImGuiHelper::BeginNestedMenu(displayName.substr(0, lastSlash).c_str());
+
+                        if (isMenuOpen)
+                        {
+                            const char* shortName = displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0);
+                            if (ImGui::MenuItem(shortName))
+                            {
+                                if (cocos2d::Node* node = getSelectedNode())
+                                {
+                                    if (ImPropertyGroup* component = ComponentFactory::getInstance()->createComponent(componentType.getName()))
+                                    {
+                                        static_cast<cocos2d::Component*>(component->getOwner())->setName(shortName);
+                                        addComponent(node, component);
+                                    }
                                 }
                             }
                         }
@@ -832,6 +891,10 @@ namespace CCImEditor
         NodeFactory::getInstance()->registerNode<PointLight, PointLightProxy>("CCImEditor.PointLight", "3D/Light/Point Light");
         NodeFactory::getInstance()->registerNode<BaseLight, AmbientLightProxy>("CCImEditor.AmbientLight", "3D/Light/Ambient Light");
         NodeFactory::getInstance()->registerNode<SpotLight, SpotLightProxy>("CCImEditor.SpotLight", "3D/Light/Spot Light");
+    }
+
+    void Editor::registerComponents()
+    {
     }
 
     void Editor::visit(cocos2d::Renderer *renderer, const cocos2d::Mat4 &parentTransform, uint32_t parentFlags)

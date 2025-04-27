@@ -25,6 +25,7 @@ namespace CCImEditor
         };
 
         friend class NodeFactory;
+        friend class ComponentFactory;
         virtual void draw() {};
         void serialize(cocos2d::ValueMap&);
         void deserialize(const cocos2d::ValueMap&);
@@ -159,6 +160,14 @@ namespace CCImEditor
             return true;
         }
 
+        bool drawHeader(const char* label, bool* visible)
+        {
+            if (_context == Context::DRAW && !ImGui::CollapsingHeader(label, visible, ImGuiTreeNodeFlags_DefaultOpen))
+                return false;
+
+            return true;
+        }
+
         Context _context = Context::DRAW;
         cocos2d::ValueMap _customValue;
         
@@ -167,7 +176,7 @@ namespace CCImEditor
         std::string _shortName;
         cocos2d::ValueMap* _contextValue = nullptr;
         std::function<void()> _undo;
-        cocos2d::WeakPtr<cocos2d::Ref> _owner;
+        cocos2d::RefPtr<cocos2d::Ref> _owner;
     };
 
     template <class T>
@@ -198,16 +207,18 @@ namespace CCImEditor
         static NodeImDrawer* create();
         bool init() override;
 
-        void draw() {_nodePropertyGroup->draw();}
+        void draw();
         void serialize(cocos2d::ValueMap& target){_nodePropertyGroup->serialize(target);}
         void deserialize(const cocos2d::ValueMap& source){_nodePropertyGroup->deserialize(source);}
         const std::string& getTypeName() {return _nodePropertyGroup->getTypeName();}
         const std::string& getShortName() const {return _nodePropertyGroup->getShortName();}
 
         void setNodePropertyGroup(ImPropertyGroup* group) {_nodePropertyGroup = group;}
-
+        void setComponentPropertyGroup(std::string name, ImPropertyGroup* group);
+        ImPropertyGroup* getComponentPropertyGroup(std::string name) {return _componentPropertyGroups[name];}
     private:
         cocos2d::RefPtr<ImPropertyGroup> _nodePropertyGroup;
+        std::map<std::string, cocos2d::RefPtr<ImPropertyGroup>> _componentPropertyGroups;
     };
 }
 

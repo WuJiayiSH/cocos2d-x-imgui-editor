@@ -45,4 +45,27 @@ namespace CCImEditor
         setName("CCImEditor.NodeImDrawer");
         return true;
     }
+
+    void NodeImDrawer::draw()
+    {
+        _nodePropertyGroup->draw();
+
+        for (const auto &[name, componentPropertyGroup] : _componentPropertyGroups)
+        {
+            if (componentPropertyGroup.get())
+                componentPropertyGroup->draw();
+        }
+    }
+
+    void NodeImDrawer::setComponentPropertyGroup(std::string name, ImPropertyGroup* group)
+    {
+        if (group)
+        {
+            _componentPropertyGroups[name] = group;
+        }
+        else
+        {
+            _componentPropertyGroups.erase(name);
+        }
+    }
 }
