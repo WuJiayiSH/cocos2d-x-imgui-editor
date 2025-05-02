@@ -216,6 +216,7 @@ namespace CCImEditor
         void setNodePropertyGroup(ImPropertyGroup* group) {_nodePropertyGroup = group;}
         void setComponentPropertyGroup(std::string name, ImPropertyGroup* group);
         ImPropertyGroup* getComponentPropertyGroup(std::string name) {return _componentPropertyGroups[name];}
+        const std::map<std::string, cocos2d::RefPtr<ImPropertyGroup>>& getComponentPropertyGroups() const {return _componentPropertyGroups;}
     private:
         cocos2d::RefPtr<ImPropertyGroup> _nodePropertyGroup;
         std::map<std::string, cocos2d::RefPtr<ImPropertyGroup>> _componentPropertyGroups;

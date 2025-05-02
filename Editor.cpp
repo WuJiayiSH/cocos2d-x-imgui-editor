@@ -143,6 +143,21 @@ namespace CCImEditor
             }
 
             target.emplace("children", cocos2d::Value(std::move(childrenVal)));
+
+            cocos2d::ValueMap componentsVal;
+            const std::map<std::string, cocos2d::RefPtr<ImPropertyGroup>>& components = drawer->getComponentPropertyGroups();
+            for (const auto& [name, component]: components)
+            {
+                cocos2d::ValueMap componentVal;
+                componentVal.emplace("type", component->getTypeName());
+
+                cocos2d::ValueMap properties;
+                component->serialize(properties);
+                componentVal.emplace("properties", cocos2d::Value(std::move(properties)));
+
+                componentsVal.emplace(name, std::move(componentVal));
+            }
+            target.emplace("components", cocos2d::Value(std::move(componentsVal)));
             return true;
         }
 
@@ -161,6 +176,40 @@ namespace CCImEditor
             {
                 NodeImDrawer* drawer = static_cast<NodeImDrawer*>((*node)->getComponent("CCImEditor.NodeImDrawer"));
                 drawer->deserialize(propertiesIt->second.asValueMap());
+            }
+
+            cocos2d::ValueMap::const_iterator componentsIt = source.find("components");
+            if (componentsIt != source.end() && componentsIt->second.getType() == cocos2d::Value::Type::MAP)
+            {
+                const cocos2d::ValueMap& componentsVal = componentsIt->second.asValueMap();
+                for (const auto& [name, componentVal]: componentsVal)
+                {
+                    if (componentVal.getType() != cocos2d::Value::Type::MAP)
+                        continue;
+
+                    const cocos2d::ValueMap& componentValMap = componentVal.asValueMap();
+
+                    cocos2d::ValueMap::const_iterator typeIt = componentValMap.find("type");
+                    if (typeIt == componentValMap.end() || typeIt->second.getType() != cocos2d::Value::Type::STRING)
+                        continue;
+
+                    ImPropertyGroup* component = ComponentFactory::getInstance()->createComponent(typeIt->second.asString());
+                    if (!component)
+                        continue;
+
+                    cocos2d::ValueMap::const_iterator propertiesIt = componentValMap.find("properties");
+                    if (propertiesIt != componentValMap.end() && propertiesIt->second.getType() == cocos2d::Value::Type::MAP)
+                    {
+                        component->deserialize(propertiesIt->second.asValueMap());
+                    }
+
+                    cocos2d::Component* owner = static_cast<cocos2d::Component*>(component->getOwner());
+                    owner->setName(name);
+                    (*node)->addComponent(owner);
+
+                    NodeImDrawer* drawer = static_cast<NodeImDrawer*>((*node)->getComponent("CCImEditor.NodeImDrawer"));
+                    drawer->setComponentPropertyGroup(name, component);
+                }
             }
 
             cocos2d::ValueMap::const_iterator childrenIt = source.find("children");
