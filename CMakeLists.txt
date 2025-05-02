@@ -87,10 +87,19 @@ file(GLOB_RECURSE HEADER
     ${CMAKE_CURRENT_LIST_DIR}/commands/RemoveComponent.h
 )
 
+if(BUILD_LUA_LIBS)
+    list(APPEND SOURCE ${CMAKE_CURRENT_LIST_DIR}/components/ComponentLua.cpp)
+    list(APPEND HEADER ${CMAKE_CURRENT_LIST_DIR}/components/ComponentLua.h)
+endif()
+
 add_library(${LIB_NAME} STATIC ${SOURCE} ${HEADER})
 add_dependencies(${LIB_NAME} cocos2d)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/cocos2d-x-imgui)
 target_link_libraries(${LIB_NAME} cc_imgui)
+
+if(BUILD_LUA_LIBS)
+    target_compile_definitions(${LIB_NAME} PRIVATE CCIME_LUA_ENGINE)
+endif()
 
 use_cocos2dx_compile_define(${LIB_NAME})

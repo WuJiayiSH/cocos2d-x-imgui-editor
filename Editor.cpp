@@ -24,7 +24,10 @@
 #include "commands/RemoveNode.h"
 #include "commands/AddComponent.h"
 #include "commands/RemoveComponent.h"
-#include "components/Component.h"
+#if CCIME_LUA_ENGINE
+#include "components/ComponentLua.h"
+#include "cocos/scripting/lua-bindings/manual/CCComponentLua.h"
+#endif
 #include "FileDialog.h"
 #include "ImGuizmo.h"
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_MAC) || (CC_TARGET_PLATFORM == CC_PLATFORM_WIN32) || (CC_TARGET_PLATFORM == CC_PLATFORM_LINUX) || (CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN)
@@ -944,6 +947,9 @@ namespace CCImEditor
 
     void Editor::registerComponents()
     {
+#if CCIME_LUA_ENGINE
+        ComponentFactory::getInstance()->registerComponent<ComponentLua, cocos2d::ComponentLua>("CCImEditor.ComponentLua", "ComponentLua");
+#endif
     }
 
     void Editor::visit(cocos2d::Renderer *renderer, const cocos2d::Mat4 &parentTransform, uint32_t parentFlags)
