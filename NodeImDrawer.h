@@ -212,6 +212,7 @@ namespace CCImEditor
         void deserialize(const cocos2d::ValueMap& source){_nodePropertyGroup->deserialize(source);}
         const std::string& getTypeName() {return _nodePropertyGroup->getTypeName();}
         const std::string& getShortName() const {return _nodePropertyGroup->getShortName();}
+        ImPropertyGroup* getNodePropertyGroup() {return _nodePropertyGroup;}
 
         void setNodePropertyGroup(ImPropertyGroup* group) {_nodePropertyGroup = group;}
         void setComponentPropertyGroup(std::string name, ImPropertyGroup* group);

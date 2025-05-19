@@ -5,6 +5,7 @@
 #include "Editor.h"
 #include "ImGuizmo.h"
 #include "commands/CustomCommand.h"
+#include "nodes/Node2D.h"
 
 using namespace cocos2d;
 
@@ -104,7 +105,19 @@ namespace CCImEditor
             transform.decompose(&scale, &rotation, &position);
             if (_gizmoOperation == ImGuizmo::TRANSLATE)
             {
-                selectedNode->setPosition3D(position);
+                NodeImDrawer* nodeImDrawer = static_cast<NodeImDrawer*>(drawer);
+                if (dynamic_cast<Node2D*>(nodeImDrawer->getNodePropertyGroup()))
+                {
+                    cocos2d::Vec2 anchorPoint = selectedNode->getAnchorPoint();
+                    cocos2d::Size contentSize = selectedNode->getContentSize();
+                    
+                    selectedNode->setPosition(cocos2d::Vec2(position.x + anchorPoint.x * contentSize.width,
+                        position.y + anchorPoint.y * contentSize.height));
+                }
+                else
+                {
+                    selectedNode->setPosition3D(position);
+                }
             }
             else if (_gizmoOperation == ImGuizmo::ROTATE)
             {
@@ -303,7 +316,7 @@ namespace CCImEditor
         if (!camera)
             return;
 
-        camera->setCameraFlag(static_cast<CameraFlag>(1 << 15));
+        camera->setCameraFlag(static_cast<cocos2d::CameraFlag>(1 << 15));
         camera->setName(getWindowName().c_str());
 
         if (_camera)
