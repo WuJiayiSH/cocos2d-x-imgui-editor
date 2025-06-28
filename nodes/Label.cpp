@@ -31,26 +31,5 @@ namespace CCImEditor
         property("Font Size###FontSize", &cocos2d::Label::getSystemFontSize, &cocos2d::Label::setSystemFontSize, owner);
         property<Enum<LabelOverflow>>("Overflow###Overflow", &cocos2d::Label::getOverflow, &cocos2d::Label::setOverflow, owner);
 
-        property<Enum<BlendSrcDst>>("Blend Source###BlendSrc",  [] (cocos2d::Label* label) -> GLenum
-        {
-            return label->getBlendFunc().src;
-        },
-        [] (cocos2d::Label* label, const GLenum& src)
-        {
-            cocos2d::BlendFunc blendFunc = label->getBlendFunc();
-            blendFunc.src = src;
-            label->setBlendFunc(blendFunc);
-        }, owner);
-
-        property<Enum<BlendSrcDst>>("Blend Destination###BlendDst",  [] (cocos2d::Label* label) -> GLenum
-        {
-            return label->getBlendFunc().dst;
-        },
-        [] (cocos2d::Label* label, const GLenum& dst)
-        {
-            cocos2d::BlendFunc blendFunc = label->getBlendFunc();
-            blendFunc.dst = dst;
-            label->setBlendFunc(blendFunc);
-        }, owner);
     }
 }
