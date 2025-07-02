@@ -79,7 +79,7 @@ namespace CCImEditor
             Editor::getInstance()->getCommandHistory().queue(command);
         }
 
-        void addComponent(cocos2d::Node* parent, ImPropertyGroup* child)
+        void queueAddComponent(cocos2d::Node* parent, ImPropertyGroup* child)
         {
             AddComponent* command = AddComponent::create(parent, child);
             if (!command)
@@ -281,8 +281,9 @@ namespace CCImEditor
                 Editor::getInstance()->alert("Failed to serialize editing node to file:\n %s", file.c_str());
             }
         }
+    } // namespace
 
-        void drawDockSpace()
+        void Editor::drawDockSpace()
         {
             ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
             windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
@@ -339,7 +340,7 @@ namespace CCImEditor
                     ImGui::Separator();
                     if (ImGui::MenuItem("Open File..."))
                     {
-                        Editor::getInstance()->openLoadFileDialog();
+                        openLoadFileDialog();
                         s_openFileCallback = [](const std::string file)
                         {
                             if (cocos2d::Node* editingNode = Editor::loadFile(file))
@@ -363,7 +364,7 @@ namespace CCImEditor
                                 {
                                     if (cocos2d::Node* editingNode = Editor::loadFile(filename))
                                     {
-                                        Editor::getInstance()->setEditingNode(editingNode);
+                                        setEditingNode(editingNode);
                                         setCurrentFile(filename);
                                     }
                                 }
@@ -376,12 +377,12 @@ namespace CCImEditor
                     ImGui::Separator();
                     if (ImGui::MenuItem("Save", "CTRL+S"))
                     {
-                        Editor::getInstance()->save();
+                        save();
                     }
 
                     if (ImGui::MenuItem("Save As..."))
                     {
-                        Editor::getInstance()->openSaveFileDialog();
+                        openSaveFileDialog();
                         s_saveFileCallback = serializeEditingNodeToFile;
                     }
 
@@ -389,7 +390,7 @@ namespace CCImEditor
 
                     if (ImGui::MenuItem("Import File..."))
                     {
-                        Editor::getInstance()->openLoadFileDialog();
+                        openLoadFileDialog();
                         s_openFileCallback = [](const std::string file)
                         {
                             if (cocos2d::Node* importedNode = Editor::loadFile(file))
@@ -455,7 +456,7 @@ namespace CCImEditor
 
                 if (ImGui::BeginMenu("Edit"))
                 {
-                    CommandHistory& commandHistory = Editor::getInstance()->getCommandHistory();
+                    CommandHistory& commandHistory = getCommandHistory();
                     if (ImGui::MenuItem("Undo", "CTRL+Z", false, commandHistory.canUndo()))
                         commandHistory.undo();
 
@@ -464,17 +465,17 @@ namespace CCImEditor
 
                     ImGui::Separator();
                     if (ImGui::MenuItem("Cut", "CTRL+X"))
-                        Editor::getInstance()->cut();
+                        cut();
 
                     if (ImGui::MenuItem("Copy", "CTRL+C"))
-                        Editor::getInstance()->copy();
+                        copy();
                     
                     if (ImGui::MenuItem("Paste", "CTRL+V"))
-                        Editor::getInstance()->paste();
+                        paste();
 
                     ImGui::Separator();
                     if (ImGui::MenuItem("Delete", "Delete"))
-                        Editor::getInstance()->removeSelectedNode();
+                        removeSelectedNode();
                     ImGui::EndMenu();
                 }
 
@@ -506,7 +507,7 @@ namespace CCImEditor
 
                                 // otherwise add to edting node
                                 if (!parent)
-                                    parent = Editor::getInstance()->getEditingNode();
+                                    parent = getEditingNode();
 
                                 if (parent)
                                 {
@@ -551,7 +552,7 @@ namespace CCImEditor
                                     if (ImPropertyGroup* component = ComponentFactory::getInstance()->createComponent(componentType.getName()))
                                     {
                                         static_cast<cocos2d::Component*>(component->getOwner())->setName(shortName);
-                                        addComponent(node, component);
+                                        queueAddComponent(node, component);
                                     }
                                 }
                             }
@@ -580,11 +581,11 @@ namespace CCImEditor
                         {
                             if (ImGui::MenuItem(displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0)))
                             {
-                                if (widgetType.allowMultiple() || !Editor::getInstance()->getWidget(widgetType.getName()))
+                                if (widgetType.allowMultiple() || !getWidget(widgetType.getName()))
                                 {
                                     if (Widget* widget = widgetType.create())
                                     {
-                                        Editor::getInstance()->addWidget(widget);
+                                        addWidget(widget);
                                     }
                                 }
                             }
@@ -612,7 +613,15 @@ namespace CCImEditor
                         }
                         else
                         {
-                            Editor::getInstance()->alert("You must save your change before run");
+                            alert("You must save your change before run");
+                        }
+                    }
+
+                    for (const Runnable& runnable: _runnables)
+                    {
+                        if (ImGui::MenuItem(runnable.first.c_str()))
+                        {
+                            runnable.second();
                         }
                     }
                     ImGui::EndMenu();
@@ -621,7 +630,7 @@ namespace CCImEditor
             }
 
             // shortcuts
-            CommandHistory& commandHistory = Editor::getInstance()->getCommandHistory();
+            CommandHistory& commandHistory = getCommandHistory();
             ImGuiIO& io = ImGui::GetIO();
             if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z, false) && commandHistory.canUndo())
                 commandHistory.undo();
@@ -630,23 +639,25 @@ namespace CCImEditor
                 commandHistory.redo();
             
             if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false))
-                Editor::getInstance()->save();
+                save();
 
             if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_X, false))
-                Editor::getInstance()->cut();
+                cut();
 
             if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_C, false))
-                Editor::getInstance()->copy();
+                copy();
 
             if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_V, false))
-                Editor::getInstance()->paste();
+                paste();
 
             if (ImGui::IsKeyPressed(ImGuiKey_Delete, false))
-                Editor::getInstance()->removeSelectedNode();
+                removeSelectedNode();
 
             ImGui::End();
         }
 
+    namespace
+    {
         void drawImGui()
         {
             if (cocos2d::GLProgram* program = cocos2d::GLProgramCache::getInstance()->getGLProgram(cocos2d::GLProgram::SHADER_NAME_POSITION_COLOR))

@@ -58,6 +58,8 @@ namespace CCImEditor
     
         void updateWindowTitle();
 
+        void addRunnable(const std::string& label, std::function<void()> func) {_runnables.emplace_back(label, func);}
+
     CC_CONSTRUCTOR_ACCESS: 
         Editor();
         ~Editor();
@@ -69,6 +71,11 @@ namespace CCImEditor
         bool init() override;
         void update(float) override;
         void callback();
+
+        void drawDockSpace();
+
+        typedef std::pair<std::string, std::function<void()>> Runnable;
+        std::vector<Runnable> _runnables;
 
         std::unordered_map<std::string, cocos2d::WeakPtr<cocos2d::Ref>> _userObjects;
         std::vector<cocos2d::RefPtr<Widget>> _widgets;
