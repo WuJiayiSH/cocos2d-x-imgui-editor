@@ -40,12 +40,8 @@ namespace CCImEditor
     {
         cocos2d::RefPtr<Editor> s_instance;
         static cocos2d::RefPtr<cocos2d::Node> s_nextEditingNode;
-        static std::function<void(std::string)> s_saveFileCallback;
-        static std::function<void(std::string)> s_openFileCallback;
+        
         static std::string s_currentFile;
-        Internal::FileDialogType s_fileDialogType;
-        std::unordered_map<ImGuiID, std::string> s_fileDialogResults;
-        ImGuiID s_fileDialogImGuiID = 0;
         cocos2d::ValueMap s_settings;
 
         cocos2d::Node* getSelectedNode()
@@ -340,15 +336,14 @@ namespace CCImEditor
                     ImGui::Separator();
                     if (ImGui::MenuItem("Open File..."))
                     {
-                        openLoadFileDialog();
-                        s_openFileCallback = [](const std::string file)
+                        openLoadFileDialog([](const std::string file)
                         {
                             if (cocos2d::Node* editingNode = Editor::loadFile(file))
                             {
                                 Editor::getInstance()->setEditingNode(editingNode);
                                 setCurrentFile(file);
                             }
-                        };
+                        });
                     }
 
                     if (ImGui::BeginMenu("Open Recent"))
@@ -382,16 +377,14 @@ namespace CCImEditor
 
                     if (ImGui::MenuItem("Save As..."))
                     {
-                        openSaveFileDialog();
-                        s_saveFileCallback = serializeEditingNodeToFile;
+                        openSaveFileDialog(serializeEditingNodeToFile);
                     }
 
                     ImGui::Separator();
 
                     if (ImGui::MenuItem("Import File..."))
                     {
-                        openLoadFileDialog();
-                        s_openFileCallback = [](const std::string file)
+                        openLoadFileDialog([](const std::string file)
                         {
                             if (cocos2d::Node* importedNode = Editor::loadFile(file))
                             {
@@ -408,7 +401,7 @@ namespace CCImEditor
                                 if (parent)
                                     addNode(parent, importedNode);
                             }
-                        };
+                        });
                     }
 
                     ImGui::Separator();
@@ -846,31 +839,8 @@ namespace CCImEditor
                 widget = nullptr;
         }
 
-        if (s_fileDialogImGuiID > 0)
-        {
-            std::string file;
-            if (Internal::fileDialog(s_fileDialogType, file))
-            {
-                // TODO: fileDialogResult is more imgui style but does not work in menubar
-                if (s_saveFileCallback && s_fileDialogType == Internal::FileDialogType::SAVE)
-                {
-                    s_saveFileCallback(file);
-                    s_saveFileCallback = nullptr;
-                }
-                else if (s_openFileCallback && s_fileDialogType == Internal::FileDialogType::LOAD)
-                {
-                    s_openFileCallback(file);
-                    s_openFileCallback = nullptr;
-                }
-                else
-                {
-                    s_fileDialogResults[s_fileDialogImGuiID] = std::move(file);
-                }
-                
-                s_fileDialogImGuiID = 0;
-            }
-        }
-        else if(!_alertText.empty())
+        bool modal = drawFileDialog();
+        if(!modal && !_alertText.empty())
         {
             const char* windowName = "Alert";
             if (!ImGui::IsPopupOpen(windowName))
@@ -992,8 +962,7 @@ namespace CCImEditor
     {
         if (s_currentFile.empty())
         {
-            openSaveFileDialog();
-            s_saveFileCallback = serializeEditingNodeToFile;
+            openSaveFileDialog(serializeEditingNodeToFile);
         }
         else
             serializeEditingNodeToFile(s_currentFile);
@@ -1076,13 +1045,14 @@ namespace CCImEditor
         return false;
     }
 
-    void Editor::openLoadFileDialog()
+    void Editor::openLoadFileDialog(std::function<void(std::string)> callback)
     {
         if (ImGuiContext* context = ImGui::GetCurrentContext())
         {
-            s_fileDialogImGuiID = context->LastItemData.ID;
-            s_fileDialogType = Internal::FileDialogType::LOAD;
-            s_fileDialogResults[s_fileDialogImGuiID].clear();
+            _fileDialogImGuiID = context->LastItemData.ID;
+            _fileDialogType = Internal::FileDialogType::LOAD;
+            _fileDialogResults[_fileDialogImGuiID].clear();
+            _loadFileCallback = callback;
         }
         else
         {
@@ -1090,13 +1060,14 @@ namespace CCImEditor
         }
     }
 
-    void Editor::openSaveFileDialog()
+    void Editor::openSaveFileDialog(std::function<void(std::string)> callback)
     {
         if (ImGuiContext* context = ImGui::GetCurrentContext())
         {
-            s_fileDialogImGuiID = context->LastItemData.ID;
-            s_fileDialogType = Internal::FileDialogType::SAVE;
-            s_fileDialogResults[s_fileDialogImGuiID].clear();
+            _fileDialogImGuiID = context->LastItemData.ID;
+            _fileDialogType = Internal::FileDialogType::SAVE;
+            _fileDialogResults[_fileDialogImGuiID].clear();
+            _saveFileCallback = callback;
         }
         else
         {
@@ -1109,7 +1080,7 @@ namespace CCImEditor
         if (ImGuiContext* context = ImGui::GetCurrentContext())
         {
             ImGuiID id = context->LastItemData.ID;
-            std::string& result = s_fileDialogResults[id];
+            std::string& result = _fileDialogResults[id];
             if (!result.empty())
             {
                 outFile = std::move(result);
@@ -1152,5 +1123,37 @@ namespace CCImEditor
             glfwSetWindowTitle(static_cast<cocos2d::GLViewImpl*>(glView)->getWindow(), _windowTitle.c_str());
         }
 #endif
+    }
+
+    bool Editor::drawFileDialog()
+    {
+        if (_fileDialogImGuiID > 0)
+        {
+            std::string file;
+            if (Internal::fileDialog(_fileDialogType, file))
+            {
+                // TODO: fileDialogResult is more imgui style but does not work in menubar
+                if (_saveFileCallback && _fileDialogType == Internal::FileDialogType::SAVE)
+                {
+                    _saveFileCallback(file);
+                    _saveFileCallback = nullptr;
+                }
+                else if (_loadFileCallback && _fileDialogType == Internal::FileDialogType::LOAD)
+                {
+                    _loadFileCallback(file);
+                    _loadFileCallback = nullptr;
+                }
+                else
+                {
+                    _fileDialogResults[_fileDialogImGuiID] = std::move(file);
+                }
+                
+                _fileDialogImGuiID = 0;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 }

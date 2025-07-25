@@ -5,6 +5,8 @@
 
 #include "Widget.h"
 #include "CommandHistory.h"
+#include "FileDialog.h"
+#include "imgui/imgui.h"
 
 namespace CCImEditor
 {
@@ -36,8 +38,8 @@ namespace CCImEditor
         
         void visit(cocos2d::Renderer *renderer, const cocos2d::Mat4 &parentTransform, uint32_t parentFlags) override;
 
-        void openLoadFileDialog();
-        void openSaveFileDialog();
+        void openLoadFileDialog(std::function<void(std::string)> callback = nullptr);
+        void openSaveFileDialog(std::function<void(std::string)> callback = nullptr);
         bool fileDialogResult(std::string& outFile);
 
         void save();
@@ -73,6 +75,7 @@ namespace CCImEditor
         void callback();
 
         void drawDockSpace();
+        bool drawFileDialog();
 
         typedef std::pair<std::string, std::function<void()>> Runnable;
         std::vector<Runnable> _runnables;
@@ -90,6 +93,13 @@ namespace CCImEditor
 
         std::string _alertText;
         std::string _windowTitle;
+
+        // file dialog
+        std::function<void(std::string)> _saveFileCallback;
+        std::function<void(std::string)> _loadFileCallback;
+        Internal::FileDialogType _fileDialogType;
+        std::unordered_map<ImGuiID, std::string> _fileDialogResults;
+        ImGuiID _fileDialogImGuiID = 0;
     };
 }
 
