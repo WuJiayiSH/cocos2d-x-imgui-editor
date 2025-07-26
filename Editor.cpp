@@ -11,6 +11,7 @@
 #include "widgets/NodeTree.h"
 #include "widgets/Viewport.h"
 #include "widgets/Assets.h"
+#include "widgets/Console.h"
 #include "nodes/Node3D.h"
 #include "nodes/Sprite3D.h"
 #include "nodes/Node2D.h"
@@ -813,6 +814,10 @@ namespace CCImEditor
 
         CCIMGUI::getInstance()->addCallback(std::bind(&Editor::callback, this), "CCImEditor.Editor");
         scheduleUpdate();
+
+        cocos2d::FileUtils* fileUtil = cocos2d::FileUtils::getInstance();
+        std::string editorLog = fileUtil->getWritablePath() + "cc_imgui_editor/editor.log";
+        freopen(editorLog.c_str(), "w", stdout);
     }
 
     void Editor::onExit()
@@ -907,6 +912,7 @@ namespace CCImEditor
         WidgetFactory::getInstance()->registerWidget<NodeTree>("CCImEditor.NodeTree", "Node Tree");
         WidgetFactory::getInstance()->registerWidget<NodeProperties>("CCImEditor.NodeProperties", "Node Properties");
         WidgetFactory::getInstance()->registerWidget<ImGuiDemo>("CCImEditor.ImGuiDemo", "ImGui Demo", WidgetFlags_DisallowMultiple);
+        WidgetFactory::getInstance()->registerWidget<Console>("CCImEditor.Console", "Console", WidgetFlags_DisallowMultiple);
     }
 
     void Editor::registerNodes()
