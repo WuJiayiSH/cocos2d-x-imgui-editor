@@ -8,3 +8,6 @@
 [submodule "ImGuizmo"]
 	path = ImGuizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo
+[submodule "magic_enum"]
+	path = magic_enum
+	url = https://github.com/Neargye/magic_enum

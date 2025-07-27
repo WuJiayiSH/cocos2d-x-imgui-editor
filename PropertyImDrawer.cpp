@@ -13,13 +13,4 @@ namespace CCImEditor
 
     constexpr const char *BlendSrcDst::s_names[];
     constexpr int BlendSrcDst::s_values[];
-
-    constexpr const char *TextVAlignment::s_names[];
-    constexpr int TextVAlignment::s_values[];
-
-    constexpr const char *TextHAlignment::s_names[];
-    constexpr int TextHAlignment::s_values[];
-
-    constexpr const char *LabelOverflow::s_names[];
-    constexpr int LabelOverflow::s_values[];
 }

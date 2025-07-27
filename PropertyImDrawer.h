@@ -6,6 +6,7 @@
 #include "imgui/imgui.h"
 #include "imgui/misc/cpp/imgui_stdlib.h"
 #include "Editor.h"
+#include <magic_enum/magic_enum.hpp>
 
 namespace CCImEditor
 {
@@ -422,6 +423,48 @@ namespace CCImEditor
         }
     };
 
+    template <typename T>
+    struct PropertyImDrawer<T, typename std::enable_if_t<std::is_enum_v<T>>> {
+        static bool draw(const char* label, T& v) {
+            bool valueChanged = false;
+        
+            // Get enum name for current value
+            auto currentName = magic_enum::enum_name(v);
+            const char* preview = currentName.empty() ? nullptr : currentName.data();
+            
+            if (ImGui::BeginCombo(label, preview)) {
+                // Iterate through all possible enum values
+                constexpr auto values = magic_enum::enum_values<T>();
+                for (auto enumValue : values) {
+                    auto name = magic_enum::enum_name(enumValue);
+                    bool isSelected = (v == enumValue);
+                    
+                    if (ImGui::Selectable(name.data(), isSelected)) {
+                        v = enumValue;
+                        valueChanged = true;
+                    }
+                    
+                    if (isSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
+            return valueChanged;
+        }
+
+        static bool serialize(cocos2d::Value& target, T v) {
+            target = static_cast<int>(v);
+            return true;
+        }
+
+        static bool deserialize(const cocos2d::Value& source, T& v) {
+            v = static_cast<T>(source.asInt());
+            return true;
+        }
+    };
+
     struct LightFlag {
         using MaskType = unsigned int;
         using EnumType = cocos2d::LightFlag;
@@ -534,53 +577,6 @@ namespace CCImEditor
             GL_ONE_MINUS_DST_COLOR,
             GL_DST_ALPHA,
             GL_ONE_MINUS_DST_ALPHA
-        };
-    };
-
-    struct TextVAlignment {
-        using EnumType = cocos2d::TextVAlignment;
-        static constexpr const char* s_names[] = {
-            "TOP",
-            "CENTER",
-            "BOTTOM"
-        };
-
-        static constexpr int s_values[] = {
-            (int)cocos2d::TextVAlignment::TOP,
-            (int)cocos2d::TextVAlignment::CENTER,
-            (int)cocos2d::TextVAlignment::BOTTOM
-        };
-    };
-
-    struct TextHAlignment {
-        using EnumType = cocos2d::TextHAlignment;
-        static constexpr const char* s_names[] = {
-            "LEFT",
-            "CENTER",
-            "RIGHT"
-        };
-
-        static constexpr int s_values[] = {
-            (int)cocos2d::TextHAlignment::LEFT,
-            (int)cocos2d::TextHAlignment::CENTER,
-            (int)cocos2d::TextHAlignment::RIGHT
-        };
-    };
-
-    struct LabelOverflow {
-        using EnumType = cocos2d::Label::Overflow;
-        static constexpr const char* s_names[] = {
-            "NONE",
-            "CLAMP",
-            "SHRINK",
-            "RESIZE_HEIGHT",
-        };
-
-        static constexpr int s_values[] = {
-            (int)cocos2d::Label::Overflow::NONE,
-            (int)cocos2d::Label::Overflow::CLAMP,
-            (int)cocos2d::Label::Overflow::SHRINK,
-            (int)cocos2d::Label::Overflow::RESIZE_HEIGHT
         };
     };
 }

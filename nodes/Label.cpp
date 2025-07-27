@@ -20,8 +20,8 @@ namespace CCImEditor
         },
         owner);
 
-        property<Enum<TextHAlignment>>("Horizontal Alignment###HAlign", &cocos2d::Label::getHorizontalAlignment, &cocos2d::Label::setHorizontalAlignment, owner);
-        property<Enum<TextVAlignment>>("Vertical Alignment###VAlign", &cocos2d::Label::getVerticalAlignment, &cocos2d::Label::setVerticalAlignment, owner);
+        property("Horizontal Alignment###HAlign", &cocos2d::Label::getHorizontalAlignment, &cocos2d::Label::setHorizontalAlignment, owner);
+        property("Vertical Alignment###VAlign", &cocos2d::Label::getVerticalAlignment, &cocos2d::Label::setVerticalAlignment, owner);
         
         property<FilePath>("Font Name###FontName", 
             DefaultGetter<std::string>(), 
@@ -29,7 +29,7 @@ namespace CCImEditor
             owner);
 
         property("Font Size###FontSize", &cocos2d::Label::getSystemFontSize, &cocos2d::Label::setSystemFontSize, owner);
-        property<Enum<LabelOverflow>>("Overflow###Overflow", &cocos2d::Label::getOverflow, &cocos2d::Label::setOverflow, owner);
+        property("Overflow###Overflow", &cocos2d::Label::getOverflow, &cocos2d::Label::setOverflow, owner);
 
     }
 }
