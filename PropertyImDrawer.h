@@ -8,6 +8,15 @@
 #include "Editor.h"
 #include <magic_enum/magic_enum.hpp>
 
+#define CC_DECLARE_FLAGS(T) \
+template <> \
+struct magic_enum::customize::enum_range<T> { \
+  static constexpr bool is_flags = true; \
+}
+
+CC_DECLARE_FLAGS(cocos2d::LightFlag);
+CC_DECLARE_FLAGS(cocos2d::ShadowSize);
+
 namespace CCImEditor
 {
     template <typename T, typename Enabled = void>
@@ -465,6 +474,86 @@ namespace CCImEditor
         }
     };
 
+    template <>
+    struct PropertyImDrawer<cocos2d::BlendFunc> {
+        static bool draw(const char* label, cocos2d::BlendFunc& func) {
+            constexpr const char* names[] = {
+                "GL_ZERO",
+                "GL_ONE",
+                "GL_SRC_COLOR",
+                "GL_ONE_MINUS_SRC_COLOR",
+                "GL_SRC_ALPHA",
+                "GL_ONE_MINUS_SRC_ALPHA",
+                "GL_DST_COLOR",
+                "GL_ONE_MINUS_DST_COLOR",
+                "GL_DST_ALPHA",
+                "GL_ONE_MINUS_DST_ALPHA"
+            };
+
+            constexpr GLenum values[] = {
+                GL_ZERO,
+                GL_ONE,
+                GL_SRC_COLOR,
+                GL_ONE_MINUS_SRC_COLOR,
+                GL_SRC_ALPHA,
+                GL_ONE_MINUS_SRC_ALPHA,
+                GL_DST_COLOR,
+                GL_ONE_MINUS_DST_COLOR,
+                GL_DST_ALPHA,
+                GL_ONE_MINUS_DST_ALPHA
+            };
+
+            bool valueChanged = false;
+            for (int i = 0; i < 2; i++)
+            {
+                std::string labelStr;
+                if (const char* token = strstr(label, "###"))
+                    labelStr.assign(label, token - label);
+                else
+                    labelStr = label;
+                labelStr.append(i == 0 ? " Src" : " Dst");
+
+                GLenum& v = i == 0 ? func.src : func.dst;
+                auto it = std::find(std::begin(values), std::end(values), v);
+                const int distance = std::distance(values, it);
+                
+                if (ImGui::BeginCombo(labelStr.c_str(), distance >= 0 && distance < IM_ARRAYSIZE(names) ? names[distance] : nullptr)) {
+                    for (int j = 0; j < IM_ARRAYSIZE(values); j++) {
+                        auto enumValue = values[j];
+                        auto name = names[j];
+                        bool isSelected = (v == enumValue);
+
+                        if (ImGui::Selectable(name, isSelected)) {
+                            v = enumValue;
+                            valueChanged = true;
+                        }
+
+                        if (isSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+            return valueChanged;
+        }
+
+        static bool serialize(cocos2d::Value& target, const cocos2d::BlendFunc& func) {
+            cocos2d::ValueVector v;
+            v.push_back(cocos2d::Value(func.src));
+            v.push_back(cocos2d::Value(func.dst));
+            target = std::move(v);
+            return true;
+        }
+
+        static bool deserialize(const cocos2d::Value& source, cocos2d::BlendFunc& func) {
+            const cocos2d::ValueVector& v = source.asValueVector();
+            func.src = v[0].asUnsignedInt();
+            func.dst = v[1].asUnsignedInt();
+            return true;
+        }
+    };
+
     struct LightFlag {
         using MaskType = unsigned int;
         using EnumType = cocos2d::LightFlag;
@@ -531,52 +620,6 @@ namespace CCImEditor
             (int)cocos2d::CameraFlag::USER6,
             (int)cocos2d::CameraFlag::USER7,
             (int)cocos2d::CameraFlag::USER8,
-        };
-    };
-    
-    struct ShadowSize {
-        using EnumType = cocos2d::ShadowSize;
-        static constexpr const char* s_names[] = {
-            "Low_256x256",
-            "Medium_512x512",
-            "High_1024x1024",
-            "Ultra_2048x2048",
-        };
-
-        static constexpr int s_values[] = {
-            (int)cocos2d::ShadowSize::Low_256x256,
-            (int)cocos2d::ShadowSize::Medium_512x512,
-            (int)cocos2d::ShadowSize::High_1024x1024,
-            (int)cocos2d::ShadowSize::Ultra_2048x2048,
-        };
-    };
-
-    struct BlendSrcDst {
-        using EnumType = GLenum;
-        static constexpr const char* s_names[] = {
-            "GL_ZERO",
-            "GL_ONE",
-            "GL_SRC_COLOR",
-            "GL_ONE_MINUS_SRC_COLOR",
-            "GL_SRC_ALPHA",
-            "GL_ONE_MINUS_SRC_ALPHA",
-            "GL_DST_COLOR",
-            "GL_ONE_MINUS_DST_COLOR",
-            "GL_DST_ALPHA",
-            "GL_ONE_MINUS_DST_ALPHA"
-        };
-
-        static constexpr int s_values[] = {
-            GL_ZERO,
-            GL_ONE,
-            GL_SRC_COLOR,
-            GL_ONE_MINUS_SRC_COLOR,
-            GL_SRC_ALPHA,
-            GL_ONE_MINUS_SRC_ALPHA,
-            GL_DST_COLOR,
-            GL_ONE_MINUS_DST_COLOR,
-            GL_DST_ALPHA,
-            GL_ONE_MINUS_DST_ALPHA
         };
     };
 }
