@@ -15,6 +15,7 @@ struct magic_enum::customize::enum_range<T> { \
 }
 
 CC_DECLARE_FLAGS(cocos2d::LightFlag);
+CC_DECLARE_FLAGS(cocos2d::CameraFlag);
 CC_DECLARE_FLAGS(cocos2d::ShadowSize);
 
 namespace CCImEditor
@@ -320,100 +321,56 @@ namespace CCImEditor
 
     namespace Internal
     {
-        struct EnumBase {};
-        struct MaskBase {};
+        struct MaskOfBase {};
     }
 
     template <typename T>
-    struct Enum: public Internal::EnumBase
-    {
-        using Type = T;
-    };
-    
-    template <typename T>
-    struct Mask: public Internal::MaskBase
+    struct MaskOf: public Internal::MaskOfBase
     {
         using Type = T;
     };
 
     // 64bit mask is not supported because cocos2d::Value does not handle 64bit int.
     template <typename T>
-    struct PropertyImDrawer<T, typename std::enable_if<std::is_base_of<Internal::MaskBase, T>::value>::type> {
-        static_assert(IM_ARRAYSIZE(T::Type::s_names) == IM_ARRAYSIZE(T::Type::s_values), "Size of enum names and values do not match");
-        static_assert(sizeof(typename T::Type::MaskType) <= 4,
-            "64bit mask is not supported because cocos2d::Value does not handle 64bit int");
-
-        static bool draw(const char* label, typename T::Type::MaskType& mask) {
-            std::stringstream stream;
-            bool firstItem = true;
-            for (int i = 0; i < IM_ARRAYSIZE(T::Type::s_names); i++)
+    struct PropertyImDrawer<T, typename std::enable_if_t<std::is_base_of_v<Internal::MaskOfBase, T>>> {
+        template <typename MaskType>
+        static bool draw(const char* label, MaskType& mask) {
+            std::string preview;
+            preview.reserve(100);
+            constexpr auto values = magic_enum::enum_values<T::Type>();
+            for (auto enumValue : values)
             {
-                if ((mask & T::Type::s_values[i]) > 0)
+                if ((mask & (MaskType)enumValue) > 0)
                 {
-                    if (!firstItem) {
-                        stream << ",";
+                    if (preview.size() > 0) {
+                        preview.append(",");
                     }
-                    firstItem = false;
-                    stream << T::Type::s_names[i];
+                    preview.append(magic_enum::enum_name(enumValue));
                 }
             }
             
             bool valueChanged = false;
-            if (ImGui::BeginCombo(label, stream.str().c_str()))
+            if (ImGui::BeginCombo(label, preview.c_str()))
             {
-                for (int i = 0; i < IM_ARRAYSIZE(T::Type::s_names); i++)
+                bool firstItem = true;
+                for (auto enumValue : values)
                 {
-                    bool v = (mask & T::Type::s_values[i]) > 0;
-                    if (ImGui::Checkbox(T::Type::s_names[i], &v))
+                    auto name = magic_enum::enum_name(enumValue);
+                    bool v = (mask & (MaskType)enumValue) > 0;
+                    if (ImGui::Checkbox(name.data(), &v))
                     {
                         if (v)
-                            mask |= T::Type::s_values[i];
+                            mask |= (MaskType)enumValue;
                         else
-                            mask &= ~T::Type::s_values[i];
+                            mask &= ~(MaskType)enumValue;
                         valueChanged = true;
                     }
 
-                    if (i == 0)
-                        ImGui::SetItemDefaultFocus();
-                }
-                ImGui::EndCombo();
-            }
-
-            return valueChanged;
-        }
-
-        static bool serialize(cocos2d::Value& target, typename T::Type::MaskType mask) {
-            target = mask;
-            return true;
-        }
-
-        static bool deserialize(const cocos2d::Value& source, typename T::Type::MaskType& mask) {
-            mask = source.asUnsignedInt();
-            return true;
-        }
-    };
-
-    template <typename T>
-    struct PropertyImDrawer<T, typename std::enable_if<std::is_base_of<Internal::EnumBase, T>::value>::type> {
-        static_assert(IM_ARRAYSIZE(T::Type::s_names) == IM_ARRAYSIZE(T::Type::s_values), "Size of enum names and values do not match");
-
-        static bool draw(const char* label, typename T::Type::EnumType& v) {
-            bool valueChanged = false;
-            auto it = std::find(std::begin(T::Type::s_values), std::end(T::Type::s_values), (decltype(*T::Type::s_values))v);
-            const int i = std::distance(T::Type::s_values, it);
-            if (ImGui::BeginCombo(label, i >= 0 && i < IM_ARRAYSIZE(T::Type::s_names) ? T::Type::s_names[i] : nullptr))
-            {
-                for (int j = 0; j < IM_ARRAYSIZE(T::Type::s_names); j++)
-                {
-                    bool selected = i == j;
-                    if (ImGui::Selectable(T::Type::s_names[j], &selected))
+                    if (firstItem == true)
                     {
-                        v = static_cast<typename T::Type::EnumType>(T::Type::s_values[j]);
-                        valueChanged = true;
-                    }
-
-                    if (selected)
+                        firstItem = false;
                         ImGui::SetItemDefaultFocus();
+                    }
                 }
                 ImGui::EndCombo();
             }
@@ -421,13 +378,15 @@ namespace CCImEditor
             return valueChanged;
         }
 
-        static bool serialize(cocos2d::Value& target, typename T::Type::EnumType v) {
-            target = static_cast<int>(v);
+        template <typename MaskType>
+        static bool serialize(cocos2d::Value& target, MaskType mask) {
+            target = (unsigned int)mask;
             return true;
         }
 
-        static bool deserialize(const cocos2d::Value& source, typename T::Type::EnumType& v) {
-            v = static_cast<typename T::Type::EnumType>(source.asInt());
+        template <typename MaskType>
+        static bool deserialize(const cocos2d::Value& source, MaskType& mask) {
+            mask = (MaskType)source.asUnsignedInt();
             return true;
         }
     };
@@ -552,75 +511,6 @@ namespace CCImEditor
             func.dst = v[1].asUnsignedInt();
             return true;
         }
-    };
-
-    struct LightFlag {
-        using MaskType = unsigned int;
-        using EnumType = cocos2d::LightFlag;
-        static constexpr const char* s_names[] = {
-            "LIGHT0",
-            "LIGHT1",
-            "LIGHT2",
-            "LIGHT3",
-            "LIGHT4",
-            "LIGHT5",
-            "LIGHT6",
-            "LIGHT7",
-            "LIGHT8",
-            "LIGHT9",
-            "LIGHT10",
-            "LIGHT11",
-            "LIGHT12",
-            "LIGHT13",
-            "LIGHT14",
-            "LIGHT15",
-        };
-
-        static constexpr int s_values[] = {
-            (int)cocos2d::LightFlag::LIGHT0,
-            (int)cocos2d::LightFlag::LIGHT1,
-            (int)cocos2d::LightFlag::LIGHT2,
-            (int)cocos2d::LightFlag::LIGHT3,
-            (int)cocos2d::LightFlag::LIGHT4,
-            (int)cocos2d::LightFlag::LIGHT5,
-            (int)cocos2d::LightFlag::LIGHT6,
-            (int)cocos2d::LightFlag::LIGHT7,
-            (int)cocos2d::LightFlag::LIGHT8,
-            (int)cocos2d::LightFlag::LIGHT9,
-            (int)cocos2d::LightFlag::LIGHT10,
-            (int)cocos2d::LightFlag::LIGHT11,
-            (int)cocos2d::LightFlag::LIGHT12,
-            (int)cocos2d::LightFlag::LIGHT13,
-            (int)cocos2d::LightFlag::LIGHT14,
-            (int)cocos2d::LightFlag::LIGHT15,
-        };
-    };
-
-    struct CameraFlag {
-        using MaskType = unsigned short;
-        static constexpr const char* s_names[] = {
-            "DEFAULT",
-            "USER1",
-            "USER2",
-            "USER3",
-            "USER4",
-            "USER5",
-            "USER6",
-            "USER7",
-            "USER8",
-        };
-
-        static constexpr int s_values[] = {
-            (int)cocos2d::CameraFlag::DEFAULT,
-            (int)cocos2d::CameraFlag::USER1,
-            (int)cocos2d::CameraFlag::USER2,
-            (int)cocos2d::CameraFlag::USER3,
-            (int)cocos2d::CameraFlag::USER4,
-            (int)cocos2d::CameraFlag::USER5,
-            (int)cocos2d::CameraFlag::USER6,
-            (int)cocos2d::CameraFlag::USER7,
-            (int)cocos2d::CameraFlag::USER8,
-        };
     };
 }
 

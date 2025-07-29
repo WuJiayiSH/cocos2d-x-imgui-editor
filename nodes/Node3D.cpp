@@ -21,7 +21,7 @@ namespace CCImEditor
         property("Tag", &Node::getTag, &Node::setTag, owner);
         property("Visible", &Node::isVisible, &Node::setVisible, owner);
         
-        property<Mask<CameraFlag>>("Camera Mask###CameraMask", &Node::getCameraMask,
+        property<MaskOf<cocos2d::CameraFlag>>("Camera Mask###CameraMask", &Node::getCameraMask,
         [] (Node* node, unsigned short cameraMask)
         {
             cameraMask |= (1 << 15);

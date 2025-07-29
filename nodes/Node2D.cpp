@@ -52,7 +52,7 @@ namespace CCImEditor
         property("Local Z Order###LocalZOrder", &Node::getLocalZOrder, &Node::setLocalZOrder, owner);
         property("Visible", &Node::isVisible, &Node::setVisible, owner);
         
-        property<Mask<CameraFlag>>("Camera Mask###CameraMask", &Node::getCameraMask,
+        property<MaskOf<cocos2d::CameraFlag>>("Camera Mask###CameraMask", &Node::getCameraMask,
         [] (Node* node, unsigned short cameraMask)
         {
             cameraMask |= (1 << 15);
