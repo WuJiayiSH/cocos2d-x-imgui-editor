@@ -38,8 +38,8 @@ namespace CCImEditor
         
         void visit(cocos2d::Renderer *renderer, const cocos2d::Mat4 &parentTransform, uint32_t parentFlags) override;
 
-        void openLoadFileDialog(std::function<void(std::string)> callback = nullptr);
-        void openSaveFileDialog(std::function<void(std::string)> callback = nullptr);
+        void openLoadFileDialog(std::function<void(const std::string&)> callback = nullptr);
+        void openSaveFileDialog(std::function<void(const std::string&)> callback = nullptr);
         bool fileDialogResult(std::string& outFile);
 
         void save();
@@ -77,12 +77,17 @@ namespace CCImEditor
         void drawDockSpace();
         bool drawFileDialog();
 
+        void serializeEditingNodeToFile(const std::string& file);
+        void setCurrentFile(const std::string& file);
+
         typedef std::pair<std::string, std::function<void()>> Runnable;
         std::vector<Runnable> _runnables;
 
         std::unordered_map<std::string, cocos2d::WeakPtr<cocos2d::Ref>> _userObjects;
         std::vector<cocos2d::RefPtr<Widget>> _widgets;
+
         cocos2d::WeakPtr<cocos2d::Node> _editingNode;
+        cocos2d::RefPtr<cocos2d::Node> _nextEditingNode;
 
         bool _isDebugMode = true;
         cocos2d::CustomCommand _command;
@@ -95,11 +100,14 @@ namespace CCImEditor
         std::string _windowTitle;
 
         // file dialog
-        std::function<void(std::string)> _saveFileCallback;
-        std::function<void(std::string)> _loadFileCallback;
+        std::function<void(const std::string&)> _saveFileCallback;
+        std::function<void(const std::string&)> _loadFileCallback;
         Internal::FileDialogType _fileDialogType;
         std::unordered_map<ImGuiID, std::string> _fileDialogResults;
         ImGuiID _fileDialogImGuiID = 0;
+
+        std::string _currentFile;
+        cocos2d::ValueMap _settings;
     };
 }
 

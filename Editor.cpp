@@ -40,10 +40,6 @@ namespace CCImEditor
     namespace
     {
         cocos2d::RefPtr<Editor> s_instance;
-        static cocos2d::RefPtr<cocos2d::Node> s_nextEditingNode;
-        
-        static std::string s_currentFile;
-        cocos2d::ValueMap s_settings;
 
         cocos2d::Node* getSelectedNode()
         {
@@ -232,426 +228,6 @@ namespace CCImEditor
             return true;
         }
 
-        void setCurrentFile(const std::string& file)
-        {
-            s_currentFile = file;
-
-            cocos2d::Value& recentFilesValue = s_settings["recent_files"];
-            if (recentFilesValue.getType() != cocos2d::Value::Type::VECTOR)
-                recentFilesValue = cocos2d::ValueVector();
-
-            cocos2d::ValueVector& recentFiles = recentFilesValue.asValueVector();
-            recentFiles.erase(std::remove_if(recentFiles.begin(), recentFiles.end(),
-                [&file](const cocos2d::Value& v)
-                {
-                    return v.asString() == file;
-                }),
-                recentFiles.end()
-            );
-
-            recentFiles.insert(recentFiles.begin(), cocos2d::Value(file));
-            if (recentFiles.size() > 10)
-                recentFiles.resize(10);
-
-            std::string settingFile = cocos2d::FileUtils::getInstance()->getWritablePath() + "cc_imgui_editor/settings.plist";
-            cocos2d::FileUtils::getInstance()->writeToFile(s_settings, settingFile);
-        }
-
-        void serializeEditingNodeToFile(const std::string& file)
-        {
-            if (file.empty())
-                return;
-
-            cocos2d::ValueMap root;
-            if (serializeNode(Editor::getInstance()->getEditingNode(), root))
-            {
-                if (cocos2d::FileUtils::getInstance()->writeToFile(root, file))
-                {
-                    setCurrentFile(file);
-                    Editor::getInstance()->getCommandHistory().setSavePoint();
-                }
-                else
-                    Editor::getInstance()->alert("Failed to write to file: %s", file.c_str());
-            }
-            else
-            {
-                Editor::getInstance()->alert("Failed to serialize editing node to file:\n %s", file.c_str());
-            }
-        }
-    } // namespace
-
-        void Editor::drawDockSpace()
-        {
-            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-            windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-            windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-            
-            const ImGuiViewport* viewport = ImGui::GetMainViewport();
-            ImGui::SetNextWindowPos(viewport->WorkPos);
-            ImGui::SetNextWindowSize(viewport->WorkSize);
-            ImGui::SetNextWindowViewport(viewport->ID);
-
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-            ImGui::Begin("CCImEditor.Editor", nullptr, windowFlags);
-            ImGui::PopStyleVar(3);
-
-            ImGuiID dockspaceId = ImGui::GetID("CCImEditor.Editor");
-            ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
-
-            if (ImGui::BeginMenuBar())
-            {
-                if (ImGui::BeginMenu("File"))
-                {
-                    if (ImGui::BeginMenu("New"))
-                    {
-                        const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
-                        for (const std::pair<std::string, NodeFactory::NodeType>& pair : nodeTypes)
-                        {
-                            const NodeFactory::NodeType& nodeType = pair.second;
-                            if ((nodeType.getMask() & NodeFlags_CanBeRoot) == 0)
-                                continue;
-
-                            const std::string& displayName = nodeType.getDisplayName();
-                            const size_t lastSlash = displayName.find_last_of('/');
-                            
-                            bool isMenuOpen = true;
-                            if (lastSlash != std::string::npos)
-                                isMenuOpen = ImGuiHelper::BeginNestedMenu(displayName.substr(0, lastSlash).c_str());
-
-                            if (isMenuOpen)
-                            {
-                                if (ImGui::MenuItem(displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0)))
-                                {
-                                    s_nextEditingNode = nodeType.create();
-                                }
-                            }
-
-                            if (lastSlash != std::string::npos)
-                                ImGuiHelper::EndNestedMenu();
-                        }
-                        ImGui::EndMenu();
-                    }
-
-                    ImGui::Separator();
-                    if (ImGui::MenuItem("Open File..."))
-                    {
-                        openLoadFileDialog([](const std::string file)
-                        {
-                            if (cocos2d::Node* editingNode = Editor::loadFile(file))
-                            {
-                                Editor::getInstance()->setEditingNode(editingNode);
-                                setCurrentFile(file);
-                            }
-                        });
-                    }
-
-                    if (ImGui::BeginMenu("Open Recent"))
-                    {
-                        auto it = s_settings.find("recent_files");
-                        if (it != s_settings.end())
-                        {
-                            const cocos2d::ValueVector& recentFiles = it->second.asValueVector();
-                            for (const cocos2d::Value& recentFile: recentFiles)
-                            {
-                                const std::string& filename = recentFile.asString();
-                                if (ImGui::MenuItem(filename.c_str()))
-                                {
-                                    if (cocos2d::Node* editingNode = Editor::loadFile(filename))
-                                    {
-                                        setEditingNode(editingNode);
-                                        setCurrentFile(filename);
-                                    }
-                                }
-                            }
-                        }
-
-						ImGui::EndMenu();
-                    }
-
-                    ImGui::Separator();
-                    if (ImGui::MenuItem("Save", "CTRL+S"))
-                    {
-                        save();
-                    }
-
-                    if (ImGui::MenuItem("Save As..."))
-                    {
-                        openSaveFileDialog(serializeEditingNodeToFile);
-                    }
-
-                    ImGui::Separator();
-
-                    if (ImGui::MenuItem("Import File..."))
-                    {
-                        openLoadFileDialog([](const std::string file)
-                        {
-                            if (cocos2d::Node* importedNode = Editor::loadFile(file))
-                            {
-                                cocos2d::Node* parent = nullptr;
-                                if (cocos2d::Node* node = getSelectedNode())
-                                {
-                                    if (canHaveChildren(node))
-                                        parent = node;
-                                }
-
-                                if (!parent)
-                                    parent = Editor::getInstance()->getEditingNode();
-                                    
-                                if (parent)
-                                    addNode(parent, importedNode);
-                            }
-                        });
-                    }
-
-                    ImGui::Separator();
-
-                    if (ImGui::BeginMenu("Preferences"))
-                    {
-                        if (ImGui::BeginMenu("Style"))
-                        {
-                            const int style = cocos2d::UserDefault::getInstance()->getIntegerForKey("cc_imgui_editor.style", 0);
-                            bool selected = style == 0;
-                            if (ImGui::Checkbox("Dark", &selected))
-                            {
-                                ImGui::StyleColorsDark();
-                                cocos2d::UserDefault::getInstance()->setIntegerForKey("cc_imgui_editor.style", 0);
-                            }
-
-                            selected = style == 1;
-                            if (ImGui::Checkbox("Light", &selected))
-                            {
-                                ImGui::StyleColorsLight();
-                                cocos2d::UserDefault::getInstance()->setIntegerForKey("cc_imgui_editor.style", 1);
-                            }
-
-                            selected = style == 2;
-                            if (ImGui::Checkbox("Classic", &selected))
-                            {
-                                ImGui::StyleColorsClassic();
-                                cocos2d::UserDefault::getInstance()->setIntegerForKey("cc_imgui_editor.style", 2);
-                            }
-
-                            ImGui::EndMenu();
-                        }
-
-                        ImGui::EndMenu();
-                    }
-
-                    ImGui::Separator();
-                    if (ImGui::MenuItem("Exit"))
-                    {
-                        cocos2d::Director::getInstance()->end();
-                    }
-                    
-                    ImGui::EndMenu();
-                }
-
-                if (ImGui::BeginMenu("Edit"))
-                {
-                    CommandHistory& commandHistory = getCommandHistory();
-                    if (ImGui::MenuItem("Undo", "CTRL+Z", false, commandHistory.canUndo()))
-                        commandHistory.undo();
-
-                    if (ImGui::MenuItem("Redo", "CTRL+Y", false, commandHistory.canRedo()))
-                        commandHistory.redo();
-
-                    ImGui::Separator();
-                    if (ImGui::MenuItem("Cut", "CTRL+X"))
-                        cut();
-
-                    if (ImGui::MenuItem("Copy", "CTRL+C"))
-                        copy();
-                    
-                    if (ImGui::MenuItem("Paste", "CTRL+V"))
-                        paste();
-
-                    ImGui::Separator();
-                    if (ImGui::MenuItem("Delete", "Delete"))
-                        removeSelectedNode();
-                    ImGui::EndMenu();
-                }
-
-                if (ImGui::BeginMenu("Node"))
-                {
-                    const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
-                    for (NodeFactory::NodeTypeMap::const_iterator it = nodeTypes.begin(); it != nodeTypes.end(); it++)
-                    {
-                        const NodeFactory::NodeType& nodeType = it->second;
-                        const std::string& displayName = nodeType.getDisplayName();
-                        const size_t lastSlash = displayName.find_last_of('/');
-                        
-                        bool isMenuOpen = true;
-                        if (lastSlash != std::string::npos)
-                            isMenuOpen = ImGuiHelper::BeginNestedMenu(displayName.substr(0, lastSlash).c_str());
-
-                        if (isMenuOpen)
-                        {
-                            const char* shortName = displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0);
-                            if (ImGui::MenuItem(shortName))
-                            {
-                                // add to selected node if possible
-                                cocos2d::Node* parent = nullptr;
-                                if (cocos2d::Node* node = getSelectedNode())
-                                {
-                                    if (canHaveChildren(node))
-                                        parent = node;
-                                }
-
-                                // otherwise add to edting node
-                                if (!parent)
-                                    parent = getEditingNode();
-
-                                if (parent)
-                                {
-                                    if (cocos2d::Node* child = nodeType.create())
-                                    {
-                                        child->setName(shortName);
-                                        addNode(parent, child);
-                                    }
-                                }
-                                else
-                                {
-                                    CCLOGERROR("Failed to add node, editing node does not exist!");
-                                }
-                            }
-                        }
-
-                        if (lastSlash != std::string::npos)
-                            ImGuiHelper::EndNestedMenu();
-                    }
-                    ImGui::EndMenu();
-                }
-
-                if (ImGui::BeginMenu("Component"))
-                {
-                    const ComponentFactory::ComponentTypeMap& componentTypes = ComponentFactory::getInstance()->getComponentTypes();
-                    for (const auto& [_, componentType] : componentTypes)
-                    {
-                        const std::string& displayName = componentType.getDisplayName();
-                        const size_t lastSlash = displayName.find_last_of('/');
-                        
-                        bool isMenuOpen = true;
-                        if (lastSlash != std::string::npos)
-                            isMenuOpen = ImGuiHelper::BeginNestedMenu(displayName.substr(0, lastSlash).c_str());
-
-                        if (isMenuOpen)
-                        {
-                            const char* shortName = displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0);
-                            if (ImGui::MenuItem(shortName))
-                            {
-                                if (cocos2d::Node* node = getSelectedNode())
-                                {
-                                    if (ImPropertyGroup* component = ComponentFactory::getInstance()->createComponent(componentType.getName()))
-                                    {
-                                        static_cast<cocos2d::Component*>(component->getOwner())->setName(shortName);
-                                        queueAddComponent(node, component);
-                                    }
-                                }
-                            }
-                        }
-
-                        if (lastSlash != std::string::npos)
-                            ImGuiHelper::EndNestedMenu();
-                    }
-                    ImGui::EndMenu();
-                }
-
-                if (ImGui::BeginMenu("Widget"))
-                {
-                    const std::unordered_map<std::string, WidgetFactory::WidgetType>& widgetTypes = WidgetFactory::getInstance()->getWidgetTypes();
-                    for (const std::pair<std::string, WidgetFactory::WidgetType>& pair : widgetTypes)
-                    {
-                        const WidgetFactory::WidgetType& widgetType = pair.second;
-                        const std::string& displayName = widgetType.getDisplayName();
-                        const size_t lastSlash = displayName.find_last_of('/');
-                        
-                        bool isMenuOpen = true;
-                        if (lastSlash != std::string::npos)
-                            isMenuOpen = ImGuiHelper::BeginNestedMenu(displayName.substr(0, lastSlash).c_str());
-
-                        if (isMenuOpen)
-                        {
-                            if (ImGui::MenuItem(displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0)))
-                            {
-                                if (widgetType.allowMultiple() || !getWidget(widgetType.getName()))
-                                {
-                                    if (Widget* widget = widgetType.create())
-                                    {
-                                        addWidget(widget);
-                                    }
-                                }
-                            }
-                        }
-
-                        if (lastSlash != std::string::npos)
-                            ImGuiHelper::EndNestedMenu();
-                    }
-                    ImGui::EndMenu();
-                }
-
-                if (ImGui::BeginMenu("Run"))
-                {
-                    if (ImGui::MenuItem("Run With Empty Scene"))
-                    {
-                        if (!s_currentFile.empty())
-                        {
-                            serializeEditingNodeToFile(s_currentFile);
-                            if (cocos2d::Node* node = Editor::loadFile(s_currentFile))
-                            {
-                                cocos2d::Scene* scene = cocos2d::Scene::create();
-                                scene->addChild(node);
-                                cocos2d::Director::getInstance()->replaceScene(scene);
-                            }
-                        }
-                        else
-                        {
-                            alert("You must save your change before run");
-                        }
-                    }
-
-                    for (const Runnable& runnable: _runnables)
-                    {
-                        if (ImGui::MenuItem(runnable.first.c_str()))
-                        {
-                            runnable.second();
-                        }
-                    }
-                    ImGui::EndMenu();
-                }
-                ImGui::EndMenuBar();
-            }
-
-            // shortcuts
-            CommandHistory& commandHistory = getCommandHistory();
-            ImGuiIO& io = ImGui::GetIO();
-            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z, false) && commandHistory.canUndo())
-                commandHistory.undo();
-
-            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Y, false) && commandHistory.canRedo())
-                commandHistory.redo();
-            
-            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false))
-                save();
-
-            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_X, false))
-                cut();
-
-            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_C, false))
-                copy();
-
-            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_V, false))
-                paste();
-
-            if (ImGui::IsKeyPressed(ImGuiKey_Delete, false))
-                removeSelectedNode();
-
-            ImGui::End();
-        }
-
-    namespace
-    {
         void drawImGui()
         {
             if (cocos2d::GLProgram* program = cocos2d::GLProgramCache::getInstance()->getGLProgram(cocos2d::GLProgram::SHADER_NAME_POSITION_COLOR))
@@ -754,7 +330,7 @@ namespace CCImEditor
                 return sprite3D;
             }
         };
-    }
+    } // namespace
 
     Editor::Editor()
     {
@@ -802,7 +378,7 @@ namespace CCImEditor
         }
 
         std::string settingFile = fileUtil->getWritablePath() + "cc_imgui_editor/settings.plist";
-        s_settings = fileUtil->getValueMapFromFile(settingFile);
+        _settings = fileUtil->getValueMapFromFile(settingFile);
 
         setName("Editor");
         return true;
@@ -877,10 +453,10 @@ namespace CCImEditor
                 widget->update(dt);
         }
 
-        if (s_nextEditingNode)
+        if (_nextEditingNode)
         {
-            setEditingNode(s_nextEditingNode);
-            s_nextEditingNode = nullptr;
+            setEditingNode(_nextEditingNode);
+            _nextEditingNode = nullptr;
         }
 
         updateWindowTitle();
@@ -951,6 +527,424 @@ namespace CCImEditor
         }
     }
 
+    void Editor::setCurrentFile(const std::string& file)
+    {
+        _currentFile = file;
+
+        cocos2d::Value& recentFilesValue = _settings["recent_files"];
+        if (recentFilesValue.getType() != cocos2d::Value::Type::VECTOR)
+            recentFilesValue = cocos2d::ValueVector();
+
+        cocos2d::ValueVector& recentFiles = recentFilesValue.asValueVector();
+        recentFiles.erase(std::remove_if(recentFiles.begin(), recentFiles.end(),
+            [&file](const cocos2d::Value& v)
+            {
+                return v.asString() == file;
+            }),
+            recentFiles.end()
+        );
+
+        recentFiles.insert(recentFiles.begin(), cocos2d::Value(file));
+        if (recentFiles.size() > 10)
+            recentFiles.resize(10);
+
+        std::string settingFile = cocos2d::FileUtils::getInstance()->getWritablePath() + "cc_imgui_editor/settings.plist";
+        cocos2d::FileUtils::getInstance()->writeToFile(_settings, settingFile);
+    }
+
+    void Editor::serializeEditingNodeToFile(const std::string& file)
+    {
+        if (file.empty())
+            return;
+
+        cocos2d::ValueMap root;
+        if (serializeNode(getEditingNode(), root))
+        {
+            if (cocos2d::FileUtils::getInstance()->writeToFile(root, file))
+            {
+                setCurrentFile(file);
+                getCommandHistory().setSavePoint();
+            }
+            else
+                alert("Failed to write to file: %s", file.c_str());
+        }
+        else
+        {
+            alert("Failed to serialize editing node to file:\n %s", file.c_str());
+        }
+    }
+
+    void Editor::drawDockSpace()
+    {
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+        windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+        
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+        ImGui::SetNextWindowViewport(viewport->ID);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::Begin("CCImEditor.Editor", nullptr, windowFlags);
+        ImGui::PopStyleVar(3);
+
+        ImGuiID dockspaceId = ImGui::GetID("CCImEditor.Editor");
+        ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+
+        if (ImGui::BeginMenuBar())
+        {
+            if (ImGui::BeginMenu("File"))
+            {
+                if (ImGui::BeginMenu("New"))
+                {
+                    const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
+                    for (const std::pair<std::string, NodeFactory::NodeType>& pair : nodeTypes)
+                    {
+                        const NodeFactory::NodeType& nodeType = pair.second;
+                        if ((nodeType.getMask() & NodeFlags_CanBeRoot) == 0)
+                            continue;
+
+                        const std::string& displayName = nodeType.getDisplayName();
+                        const size_t lastSlash = displayName.find_last_of('/');
+                        
+                        bool isMenuOpen = true;
+                        if (lastSlash != std::string::npos)
+                            isMenuOpen = ImGuiHelper::BeginNestedMenu(displayName.substr(0, lastSlash).c_str());
+
+                        if (isMenuOpen)
+                        {
+                            if (ImGui::MenuItem(displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0)))
+                            {
+                                _nextEditingNode = nodeType.create();
+                            }
+                        }
+
+                        if (lastSlash != std::string::npos)
+                            ImGuiHelper::EndNestedMenu();
+                    }
+                    ImGui::EndMenu();
+                }
+
+                ImGui::Separator();
+                if (ImGui::MenuItem("Open File..."))
+                {
+                    openLoadFileDialog([this](const std::string& file)
+                    {
+                        if (cocos2d::Node* editingNode = Editor::loadFile(file))
+                        {
+                            setEditingNode(editingNode);
+                            setCurrentFile(file);
+                        }
+                    });
+                }
+
+                if (ImGui::BeginMenu("Open Recent"))
+                {
+                    auto it = _settings.find("recent_files");
+                    if (it != _settings.end())
+                    {
+                        const cocos2d::ValueVector& recentFiles = it->second.asValueVector();
+                        for (const cocos2d::Value& recentFile: recentFiles)
+                        {
+                            const std::string& filename = recentFile.asString();
+                            if (ImGui::MenuItem(filename.c_str()))
+                            {
+                                if (cocos2d::Node* editingNode = Editor::loadFile(filename))
+                                {
+                                    setEditingNode(editingNode);
+                                    setCurrentFile(filename);
+                                }
+                            }
+                        }
+                    }
+
+                    ImGui::EndMenu();
+                }
+
+                ImGui::Separator();
+                if (ImGui::MenuItem("Save", "CTRL+S"))
+                {
+                    save();
+                }
+
+                if (ImGui::MenuItem("Save As..."))
+                {
+                    openSaveFileDialog([this](const std::string& file){
+                        serializeEditingNodeToFile(file);
+                    });
+                }
+
+                ImGui::Separator();
+
+                if (ImGui::MenuItem("Import File..."))
+                {
+                    openLoadFileDialog([](const std::string& file)
+                    {
+                        if (cocos2d::Node* importedNode = Editor::loadFile(file))
+                        {
+                            cocos2d::Node* parent = nullptr;
+                            if (cocos2d::Node* node = getSelectedNode())
+                            {
+                                if (canHaveChildren(node))
+                                    parent = node;
+                            }
+
+                            if (!parent)
+                                parent = Editor::getInstance()->getEditingNode();
+                                
+                            if (parent)
+                                addNode(parent, importedNode);
+                        }
+                    });
+                }
+
+                ImGui::Separator();
+
+                if (ImGui::BeginMenu("Preferences"))
+                {
+                    if (ImGui::BeginMenu("Style"))
+                    {
+                        const int style = cocos2d::UserDefault::getInstance()->getIntegerForKey("cc_imgui_editor.style", 0);
+                        bool selected = style == 0;
+                        if (ImGui::Checkbox("Dark", &selected))
+                        {
+                            ImGui::StyleColorsDark();
+                            cocos2d::UserDefault::getInstance()->setIntegerForKey("cc_imgui_editor.style", 0);
+                        }
+
+                        selected = style == 1;
+                        if (ImGui::Checkbox("Light", &selected))
+                        {
+                            ImGui::StyleColorsLight();
+                            cocos2d::UserDefault::getInstance()->setIntegerForKey("cc_imgui_editor.style", 1);
+                        }
+
+                        selected = style == 2;
+                        if (ImGui::Checkbox("Classic", &selected))
+                        {
+                            ImGui::StyleColorsClassic();
+                            cocos2d::UserDefault::getInstance()->setIntegerForKey("cc_imgui_editor.style", 2);
+                        }
+
+                        ImGui::EndMenu();
+                    }
+
+                    ImGui::EndMenu();
+                }
+
+                ImGui::Separator();
+                if (ImGui::MenuItem("Exit"))
+                {
+                    cocos2d::Director::getInstance()->end();
+                }
+                
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Edit"))
+            {
+                CommandHistory& commandHistory = getCommandHistory();
+                if (ImGui::MenuItem("Undo", "CTRL+Z", false, commandHistory.canUndo()))
+                    commandHistory.undo();
+
+                if (ImGui::MenuItem("Redo", "CTRL+Y", false, commandHistory.canRedo()))
+                    commandHistory.redo();
+
+                ImGui::Separator();
+                if (ImGui::MenuItem("Cut", "CTRL+X"))
+                    cut();
+
+                if (ImGui::MenuItem("Copy", "CTRL+C"))
+                    copy();
+                
+                if (ImGui::MenuItem("Paste", "CTRL+V"))
+                    paste();
+
+                ImGui::Separator();
+                if (ImGui::MenuItem("Delete", "Delete"))
+                    removeSelectedNode();
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Node"))
+            {
+                const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
+                for (NodeFactory::NodeTypeMap::const_iterator it = nodeTypes.begin(); it != nodeTypes.end(); it++)
+                {
+                    const NodeFactory::NodeType& nodeType = it->second;
+                    const std::string& displayName = nodeType.getDisplayName();
+                    const size_t lastSlash = displayName.find_last_of('/');
+                    
+                    bool isMenuOpen = true;
+                    if (lastSlash != std::string::npos)
+                        isMenuOpen = ImGuiHelper::BeginNestedMenu(displayName.substr(0, lastSlash).c_str());
+
+                    if (isMenuOpen)
+                    {
+                        const char* shortName = displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0);
+                        if (ImGui::MenuItem(shortName))
+                        {
+                            // add to selected node if possible
+                            cocos2d::Node* parent = nullptr;
+                            if (cocos2d::Node* node = getSelectedNode())
+                            {
+                                if (canHaveChildren(node))
+                                    parent = node;
+                            }
+
+                            // otherwise add to edting node
+                            if (!parent)
+                                parent = getEditingNode();
+
+                            if (parent)
+                            {
+                                if (cocos2d::Node* child = nodeType.create())
+                                {
+                                    child->setName(shortName);
+                                    addNode(parent, child);
+                                }
+                            }
+                            else
+                            {
+                                CCLOGERROR("Failed to add node, editing node does not exist!");
+                            }
+                        }
+                    }
+
+                    if (lastSlash != std::string::npos)
+                        ImGuiHelper::EndNestedMenu();
+                }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Component"))
+            {
+                const ComponentFactory::ComponentTypeMap& componentTypes = ComponentFactory::getInstance()->getComponentTypes();
+                for (const auto& [_, componentType] : componentTypes)
+                {
+                    const std::string& displayName = componentType.getDisplayName();
+                    const size_t lastSlash = displayName.find_last_of('/');
+                    
+                    bool isMenuOpen = true;
+                    if (lastSlash != std::string::npos)
+                        isMenuOpen = ImGuiHelper::BeginNestedMenu(displayName.substr(0, lastSlash).c_str());
+
+                    if (isMenuOpen)
+                    {
+                        const char* shortName = displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0);
+                        if (ImGui::MenuItem(shortName))
+                        {
+                            if (cocos2d::Node* node = getSelectedNode())
+                            {
+                                if (ImPropertyGroup* component = ComponentFactory::getInstance()->createComponent(componentType.getName()))
+                                {
+                                    static_cast<cocos2d::Component*>(component->getOwner())->setName(shortName);
+                                    queueAddComponent(node, component);
+                                }
+                            }
+                        }
+                    }
+
+                    if (lastSlash != std::string::npos)
+                        ImGuiHelper::EndNestedMenu();
+                }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Widget"))
+            {
+                const std::unordered_map<std::string, WidgetFactory::WidgetType>& widgetTypes = WidgetFactory::getInstance()->getWidgetTypes();
+                for (const std::pair<std::string, WidgetFactory::WidgetType>& pair : widgetTypes)
+                {
+                    const WidgetFactory::WidgetType& widgetType = pair.second;
+                    const std::string& displayName = widgetType.getDisplayName();
+                    const size_t lastSlash = displayName.find_last_of('/');
+                    
+                    bool isMenuOpen = true;
+                    if (lastSlash != std::string::npos)
+                        isMenuOpen = ImGuiHelper::BeginNestedMenu(displayName.substr(0, lastSlash).c_str());
+
+                    if (isMenuOpen)
+                    {
+                        if (ImGui::MenuItem(displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0)))
+                        {
+                            if (widgetType.allowMultiple() || !getWidget(widgetType.getName()))
+                            {
+                                if (Widget* widget = widgetType.create())
+                                {
+                                    addWidget(widget);
+                                }
+                            }
+                        }
+                    }
+
+                    if (lastSlash != std::string::npos)
+                        ImGuiHelper::EndNestedMenu();
+                }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Run"))
+            {
+                if (ImGui::MenuItem("Run With Empty Scene"))
+                {
+                    if (_commandHistory.atSavePoint())
+                    {
+                        if (cocos2d::Node* node = Editor::loadFile(_currentFile))
+                        {
+                            cocos2d::Scene* scene = cocos2d::Scene::create();
+                            scene->addChild(node);
+                            cocos2d::Director::getInstance()->replaceScene(scene);
+                        }
+                    }
+                    else
+                    {
+                        alert("You must save your change before run");
+                    }
+                }
+
+                for (const Runnable& runnable: _runnables)
+                {
+                    if (ImGui::MenuItem(runnable.first.c_str()))
+                    {
+                        runnable.second();
+                    }
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenuBar();
+        }
+
+        // shortcuts
+        CommandHistory& commandHistory = getCommandHistory();
+        ImGuiIO& io = ImGui::GetIO();
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z, false) && commandHistory.canUndo())
+            commandHistory.undo();
+
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Y, false) && commandHistory.canRedo())
+            commandHistory.redo();
+        
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false))
+            save();
+
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_X, false))
+            cut();
+
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_C, false))
+            copy();
+
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_V, false))
+            paste();
+
+        if (ImGui::IsKeyPressed(ImGuiKey_Delete, false))
+            removeSelectedNode();
+
+        ImGui::End();
+    }
+
     void Editor::setEditingNode(cocos2d::Node* node)
     {
         if (_editingNode == node)
@@ -966,12 +960,14 @@ namespace CCImEditor
 
     void Editor::save()
     {
-        if (s_currentFile.empty())
+        if (_currentFile.empty())
         {
-            openSaveFileDialog(serializeEditingNodeToFile);
+            openSaveFileDialog([this](const std::string& file){
+                serializeEditingNodeToFile(file);
+            });
         }
         else
-            serializeEditingNodeToFile(s_currentFile);
+            serializeEditingNodeToFile(_currentFile);
     }
 
     void Editor::copy()
@@ -1051,7 +1047,7 @@ namespace CCImEditor
         return false;
     }
 
-    void Editor::openLoadFileDialog(std::function<void(std::string)> callback)
+    void Editor::openLoadFileDialog(std::function<void(const std::string&)> callback)
     {
         if (ImGuiContext* context = ImGui::GetCurrentContext())
         {
@@ -1066,7 +1062,7 @@ namespace CCImEditor
         }
     }
 
-    void Editor::openSaveFileDialog(std::function<void(std::string)> callback)
+    void Editor::openSaveFileDialog(std::function<void(const std::string&)> callback)
     {
         if (ImGuiContext* context = ImGui::GetCurrentContext())
         {
@@ -1114,13 +1110,13 @@ namespace CCImEditor
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_MAC) || (CC_TARGET_PLATFORM == CC_PLATFORM_WIN32) || (CC_TARGET_PLATFORM == CC_PLATFORM_LINUX) || (CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN)
         cocos2d::GLView* glView  =cocos2d::Director::getInstance()->getOpenGLView();
         std::string title;
-        if (s_currentFile.empty())
+        if (_currentFile.empty())
         {
             title = glView->getViewName();
         }
         else
         {
-            title = cocos2d::StringUtils::format("%s%s - %s", s_currentFile.c_str(), _commandHistory.atSavePoint()?"":"*", glView->getViewName().c_str());
+            title = cocos2d::StringUtils::format("%s%s - %s", _currentFile.c_str(), _commandHistory.atSavePoint()?"":"*", glView->getViewName().c_str());
         }
 
         if (title != _windowTitle)
