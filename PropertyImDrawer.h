@@ -62,7 +62,8 @@ namespace CCImEditor
     template <>
     struct PropertyImDrawer<int> {
         static bool draw(const char* label, int& v, float v_speed = 1.0f, int v_min = 0, int v_max = 0, const char* format = "%d", ImGuiSliderFlags flags = 0) {
-            return ImGui::DragInt(label, &v, v_speed, v_min,  v_max, format, flags);
+            ImGui::DragInt(label, &v, v_speed, v_min,  v_max, format, flags);
+            return ImGui::IsItemActive();
         }
 
         static bool serialize(cocos2d::Value& target, int v) {
@@ -79,7 +80,8 @@ namespace CCImEditor
     template <>
     struct PropertyImDrawer<float> {
         static bool draw(const char* label, float& v, float v_speed = 1.0f, float v_min = 0.0f, float v_max = 0.0f, const char* format = "%.3f", ImGuiSliderFlags flags = 0) {
-            return ImGui::DragFloat(label, &v, v_speed, v_min,  v_max, format, flags);
+            ImGui::DragFloat(label, &v, v_speed, v_min,  v_max, format, flags);
+            return ImGui::IsItemActive();
         }
 
         static bool serialize(cocos2d::Value& target, float v) {
@@ -104,7 +106,7 @@ namespace CCImEditor
                 return true;
             }
 
-            return false;
+            return ImGui::IsItemActive();
         }
 
         static bool serialize(cocos2d::Value& target, float v) {
@@ -127,7 +129,7 @@ namespace CCImEditor
                 vec.set(v);
                 return true;
             }
-            return false;
+            return ImGui::IsItemActive();
         }
 
         static bool serialize(cocos2d::Value& target, const cocos2d::Vec2& vec) {
@@ -155,7 +157,7 @@ namespace CCImEditor
                 vec.setSize(v[0], v[1]);
                 return true;
             }
-            return false;
+            return ImGui::IsItemActive();
         }
 
         static bool serialize(cocos2d::Value& target, const cocos2d::Size& vec) {
@@ -183,7 +185,7 @@ namespace CCImEditor
                 vec.set(v);
                 return true;
             }
-            return false;
+            return ImGui::IsItemActive();
         }
 
         static bool serialize(cocos2d::Value& target, const cocos2d::Vec3& vec) {
@@ -215,7 +217,7 @@ namespace CCImEditor
                 color.b = static_cast<GLubyte>(v[2] * 255.0f);
                 return true;
             }
-            return false;
+            return ImGui::IsItemActive();
         }
 
         static bool serialize(cocos2d::Value& target, const cocos2d::Color3B& color) {
@@ -248,7 +250,7 @@ namespace CCImEditor
                 color.a = static_cast<GLubyte>(v[3] * 255.0f);
                 return true;
             }
-            return false;
+            return ImGui::IsItemActive();
         }
 
         static bool serialize(cocos2d::Value& target, const cocos2d::Color4B& color) {

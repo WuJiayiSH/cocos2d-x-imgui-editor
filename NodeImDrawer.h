@@ -90,8 +90,6 @@ namespace CCImEditor
             else
                 key = label;
 
-            // TODO: FilePath generate special undo/redo command. It should be handled more generically in the future.
-            constexpr bool isFilePath = std::is_same<DrawerType, FilePath>::value;
             if (_context == Context::DRAW)
             {
                 // object is always valid for undo/redo. It will be retained if it is removed form scene by a command.
@@ -100,36 +98,32 @@ namespace CCImEditor
                 auto v = getFromCustomValueOrGetter<DrawerType, PropertyType>(key, std::forward<Getter>(getter), std::forward<Object>(object));
                 if (PropertyImDrawer<PropertyOrDrawerType>::draw(label, v, std::forward<Args>(args)...))
                 {
-                    if (isFilePath)
+                    if (!_undo)
                     {
                         auto v0 = getFromCustomValueOrGetter<DrawerType, PropertyType>(key, std::forward<Getter>(getter), std::forward<Object>(object));
-                        CustomCommand* cmd = CustomCommand::create(
-                            getSetterWrapper<DrawerType>(key, std::forward<Setter>(setter), std::forward<Object>(object), v),
-                            getSetterWrapper<DrawerType>(key, std::forward<Setter>(setter), std::forward<Object>(object), v0)
-                        );
-                        Editor::getInstance()->getCommandHistory().queue(cmd); // the cmd will execute the setter
+                        _undo = getSetterWrapper<DrawerType>(key, std::forward<Setter>(setter), std::forward<Object>(object), v0);
+                        _activeID = ImGui::GetItemID();
                     }
                     else
                     {
-                        if (!_undo)
-                        {
-                            auto v0 = getFromCustomValueOrGetter<DrawerType, PropertyType>(key, std::forward<Getter>(getter), std::forward<Object>(object));
-                            _undo = getSetterWrapper<DrawerType>(key, std::forward<Setter>(setter), std::forward<Object>(object), v0);
-                        }
-
-                        PropertyImDrawer<PropertyOrDrawerType>::serialize(_customValue[key], v);
-                        std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                        CC_ASSERT(_activeID == ImGui::GetItemID());
                     }
-                }
 
-                if (_undo && ImGui::IsItemDeactivated())
+                    PropertyImDrawer<PropertyOrDrawerType>::serialize(_customValue[key], v);
+                    std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                }
+                else
                 {
-                    CustomCommand* cmd = CustomCommand::create(
-                        getSetterWrapper<DrawerType>(key, std::forward<Setter>(setter), std::forward<Object>(object), v),
-                        _undo
-                    );
-                    Editor::getInstance()->getCommandHistory().queue(cmd, false);
-                    _undo = nullptr;
+                    if (_undo && _activeID == ImGui::GetItemID())
+                    {
+                        CustomCommand* cmd = CustomCommand::create(
+                            getSetterWrapper<DrawerType>(key, std::forward<Setter>(setter), std::forward<Object>(object), v),
+                            _undo
+                        );
+                        Editor::getInstance()->getCommandHistory().queue(cmd, false);
+                        _undo = nullptr;
+                        _activeID = 0;
+                    }
                 }
             }
             else if (_context == Context::SERIALIZE)
@@ -176,6 +170,7 @@ namespace CCImEditor
         std::string _shortName;
         cocos2d::ValueMap* _contextValue = nullptr;
         std::function<void()> _undo;
+        ImGuiID _activeID = 0;
         cocos2d::RefPtr<cocos2d::Ref> _owner;
     };
 
