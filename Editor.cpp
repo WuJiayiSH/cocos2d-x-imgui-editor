@@ -377,6 +377,9 @@ namespace CCImEditor
             case 2: ImGui::StyleColorsClassic(); break;
         }
 
+        const bool debug = cocos2d::UserDefault::getInstance()->getBoolForKey("cc_imgui_editor.debug", false);
+        setDebugMode(debug);
+
         std::string settingFile = fileUtil->getWritablePath() + "cc_imgui_editor/settings.plist";
         _settings = fileUtil->getValueMapFromFile(settingFile);
 
@@ -705,6 +708,11 @@ namespace CCImEditor
 
                 if (ImGui::BeginMenu("Preferences"))
                 {
+                    if (ImGui::Checkbox("Debug Mode", &_isDebugMode))
+                    {
+                        cocos2d::UserDefault::getInstance()->setBoolForKey("cc_imgui_editor.debug", _isDebugMode);
+                    }
+                    
                     if (ImGui::BeginMenu("Style"))
                     {
                         const int style = cocos2d::UserDefault::getInstance()->getIntegerForKey("cc_imgui_editor.style", 0);
