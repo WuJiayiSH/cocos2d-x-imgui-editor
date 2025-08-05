@@ -48,6 +48,14 @@ namespace CCImEditor
 
     void NodeImDrawer::draw()
     {
+        if (!_filename.empty())
+        {
+            if (ImGui::Button("Unpack"))
+            {
+                _filename.clear();
+            }
+        }
+
         _nodePropertyGroup->draw();
 
         for (const auto &[name, componentPropertyGroup] : _componentPropertyGroups)

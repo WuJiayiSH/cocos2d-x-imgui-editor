@@ -209,6 +209,9 @@ namespace CCImEditor
         const std::string& getShortName() const {return _nodePropertyGroup->getShortName();}
         ImPropertyGroup* getNodePropertyGroup() {return _nodePropertyGroup;}
 
+        const std::string& getFilename() const {return _filename;}
+        void setFilename(const std::string& filename) {_filename = filename;}
+
         void setNodePropertyGroup(ImPropertyGroup* group) {_nodePropertyGroup = group;}
         void setComponentPropertyGroup(std::string name, ImPropertyGroup* group);
         ImPropertyGroup* getComponentPropertyGroup(std::string name) {return _componentPropertyGroups[name];}
@@ -216,6 +219,7 @@ namespace CCImEditor
     private:
         cocos2d::RefPtr<ImPropertyGroup> _nodePropertyGroup;
         std::map<std::string, cocos2d::RefPtr<ImPropertyGroup>> _componentPropertyGroups;
+        std::string _filename;
     };
 }
 

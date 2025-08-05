@@ -1,6 +1,7 @@
 #include "NodeTree.h"
 #include "WidgetFactory.h"
 #include "Editor.h"
+#include "NodeImDrawer.h"
 #include "CCIMGUI.h"
 #include "cocos2d.h"
 
@@ -32,7 +33,14 @@ namespace CCImEditor
             if (s_selectedNode == node)
                 flags |= ImGuiTreeNodeFlags_Selected;
 
-            if (!node->getChildrenCount())
+            // Hide children if node was loaded from file
+            bool hideChildren = false;
+            if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer")))
+            {
+                hideChildren = !drawer->getFilename().empty() && !Editor::getInstance()->isDebugMode();
+            }
+
+            if (!node->getChildrenCount() || hideChildren)
                 flags |= ImGuiTreeNodeFlags_Leaf;
 
             if (s_shouldExpandSelectedNode)
@@ -64,11 +72,15 @@ namespace CCImEditor
 
             if (open)
             {
-                const Vector<Node*>& children = node->getChildren();
-                for (Node* child : children)
+                if (!hideChildren)
                 {
-                    drawNode(child);
+                    const Vector<Node*>& children = node->getChildren();
+                    for (Node* child : children)
+                    {
+                        drawNode(child);
+                    }
                 }
+
                 ImGui::TreePop();
             }
         }
