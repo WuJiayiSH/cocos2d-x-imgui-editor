@@ -112,6 +112,22 @@ namespace CCImEditor
             return false;
         }
 
+        void unpackRecursively(cocos2d::Node* node)
+        {
+            if (!node)
+                return;
+
+            if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer")))
+            {
+                drawer->setFilename("");
+            }
+
+            for (cocos2d::Node* child: node->getChildren())
+            {
+                unpackRecursively(child);
+            }
+        }
+
         bool serializeNode(cocos2d::Node* node, cocos2d::ValueMap& target)
         {
             if (!node)
@@ -123,22 +139,31 @@ namespace CCImEditor
 
             target.emplace("type", drawer->getTypeName());
 
+            if (!drawer->getFilename().empty())
+            {
+                target.emplace("file", drawer->getFilename());
+            }
+
             cocos2d::ValueMap properties;
             drawer->serialize(properties);
             target.emplace("properties", cocos2d::Value(std::move(properties)));
-            
-            cocos2d::ValueVector childrenVal;
-            cocos2d::Vector<cocos2d::Node*>& children = node->getChildren();
-            for (cocos2d::Node* child: children)
-            {
-                cocos2d::ValueMap childVal;
-                if (serializeNode(child, childVal))
-                {
-                    childrenVal.push_back(cocos2d::Value(std::move(childVal)));
-                }
-            }
 
-            target.emplace("children", cocos2d::Value(std::move(childrenVal)));
+            // For node loaded from file, don't serialize recursively
+            if (drawer->getFilename().empty())
+            {
+                cocos2d::ValueVector childrenVal;
+                cocos2d::Vector<cocos2d::Node*>& children = node->getChildren();
+                for (cocos2d::Node* child: children)
+                {
+                    cocos2d::ValueMap childVal;
+                    if (serializeNode(child, childVal))
+                    {
+                        childrenVal.push_back(cocos2d::Value(std::move(childVal)));
+                    }
+                }
+
+                target.emplace("children", cocos2d::Value(std::move(childrenVal)));
+            }
 
             cocos2d::ValueMap componentsVal;
             const std::map<std::string, cocos2d::RefPtr<ImPropertyGroup>>& components = drawer->getComponentPropertyGroups();
@@ -163,7 +188,36 @@ namespace CCImEditor
             if (typeIt == source.end() || typeIt->second.getType() != cocos2d::Value::Type::STRING)
                 return false;
 
-            *node = NodeFactory::getInstance()->createNode(typeIt->second.asString());
+            std::string file;
+            cocos2d::ValueMap::const_iterator fileIt = source.find("file");
+            if (fileIt != source.end() && fileIt->second.getType() == cocos2d::Value::Type::STRING)
+                file = fileIt->second.asString();
+
+            if (!file.empty())
+            {
+                *node = Editor::loadFile(file);
+                if (*node)
+                {
+                    NodeImDrawer* drawer = static_cast<NodeImDrawer*>((*node)->getComponent("CCImEditor.NodeImDrawer"));
+                    if (drawer->getTypeName() != typeIt->second.asString())
+                    {
+                        CCLOGWARN("Types do not match when loading %s, discard", file.c_str());
+                        *node = nullptr;
+                    }
+                    else
+                    {
+                        drawer->setFilename(file);
+                    }
+                }
+                else
+                {
+                    CCLOGWARN("Failed to load file %s", file.c_str());
+                }
+            }
+
+            if (!*node)
+                *node = NodeFactory::getInstance()->createNode(typeIt->second.asString());
+
             if (!*node)
                 return false;
 
@@ -224,7 +278,7 @@ namespace CCImEditor
                     }
                 }
             }
-            
+
             return true;
         }
 
@@ -688,6 +742,9 @@ namespace CCImEditor
                     {
                         if (cocos2d::Node* importedNode = Editor::loadFile(file))
                         {
+                            if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(importedNode->getComponent("CCImEditor.NodeImDrawer")))
+                                drawer->setFilename(file);
+
                             cocos2d::Node* parent = nullptr;
                             if (cocos2d::Node* node = getSelectedNode())
                             {
@@ -779,6 +836,22 @@ namespace CCImEditor
 
             if (ImGui::BeginMenu("Node"))
             {
+                if (ImGui::MenuItem("Unpack"))
+                {
+                    if (cocos2d::Node* node = getSelectedNode())
+                    {
+                        if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer")))
+                            drawer->setFilename("");
+                    }
+                }
+
+                if (ImGui::MenuItem("Unpack Recursively"))
+                {
+                    unpackRecursively(getSelectedNode());
+                }
+
+                ImGui::Separator();
+
                 const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
                 for (NodeFactory::NodeTypeMap::const_iterator it = nodeTypes.begin(); it != nodeTypes.end(); it++)
                 {
