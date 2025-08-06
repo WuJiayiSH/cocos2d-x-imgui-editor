@@ -1,4 +1,5 @@
 #include "NodeImDrawer.h"
+#include "NodeFactory.h"
 
 namespace CCImEditor
 {
@@ -67,5 +68,28 @@ namespace CCImEditor
         {
             _componentPropertyGroups.erase(name);
         }
+    }
+
+    bool NodeImDrawer::canHaveChildren() const
+    {
+        return (getMask() & NodeFlags_CanHaveChildren) > 0 && _filename.empty();
+    }
+
+    bool NodeImDrawer::canHaveComponents() const
+    {
+        return (getMask() & NodeFlags_CanHaveComponents) > 0;
+    }
+
+    bool NodeImDrawer::canBeRoot() const
+    {
+        return (getMask() & NodeFlags_CanBeRoot) > 0;
+    }
+
+    uint32_t NodeImDrawer::getMask() const
+    {
+        const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
+        NodeFactory::NodeTypeMap::const_iterator it = nodeTypes.find(getTypeName());
+        CC_ASSERT(it != nodeTypes.end());
+        return it->second.getMask();
     }
 }

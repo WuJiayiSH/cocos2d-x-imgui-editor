@@ -99,34 +99,13 @@ namespace CCImEditor
             {
                 if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer")))
                 {
-                    const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
-                    NodeFactory::NodeTypeMap::const_iterator it = nodeTypes.find(drawer->getTypeName());
-                    CC_ASSERT(it != nodeTypes.end());
-                    if ((it->second.getMask() & NodeFlags_CanHaveChildren) > 0)
-                    {
-                        return true;
-                    }
+                    return drawer->canHaveChildren();
                 }
             }
 
             return false;
         }
 
-        void unpackRecursively(cocos2d::Node* node)
-        {
-            if (!node)
-                return;
-
-            if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer")))
-            {
-                drawer->setFilename("");
-            }
-
-            for (cocos2d::Node* child: node->getChildren())
-            {
-                unpackRecursively(child);
-            }
-        }
 
         bool serializeNode(cocos2d::Node* node, cocos2d::ValueMap& target)
         {
@@ -550,19 +529,19 @@ namespace CCImEditor
 
     void Editor::registerNodes()
     {
-        NodeFactory::getInstance()->registerNode<Node2D, cocos2d::Node>("CCImEditor.Node2D", "2D/Node2D", NodeFlags_CanHaveChildren | NodeFlags_CanBeRoot);
-        NodeFactory::getInstance()->registerNode<Sprite, cocos2d::Sprite>("CCImEditor.Sprite", "2D/Sprite");
-        NodeFactory::getInstance()->registerNode<Label, cocos2d::Label>("CCImEditor.Label", "2D/Label");
+        NodeFactory::getInstance()->registerNode<Node2D, cocos2d::Node>("CCImEditor.Node2D", "2D/Node2D", NodeFlags_CanHaveComponents | NodeFlags_CanHaveChildren | NodeFlags_CanBeRoot);
+        NodeFactory::getInstance()->registerNode<Sprite, cocos2d::Sprite>("CCImEditor.Sprite", "2D/Sprite", NodeFlags_CanHaveComponents);
+        NodeFactory::getInstance()->registerNode<Label, cocos2d::Label>("CCImEditor.Label", "2D/Label", NodeFlags_CanHaveComponents);
 
-        NodeFactory::getInstance()->registerNode<Node3D, cocos2d::Node>("CCImEditor.Node3D", "3D/Node3D", NodeFlags_CanHaveChildren | NodeFlags_CanBeRoot);
-        NodeFactory::getInstance()->registerNode<Sprite3D, cocos2d::Sprite3D>("CCImEditor.Sprite3D", "3D/Sprite3D");
-        NodeFactory::getInstance()->registerNode<Geometry, QuadProxy>("CCImEditor.Quad", "3D/Quad");
-        NodeFactory::getInstance()->registerNode<Geometry, CubeProxy>("CCImEditor.Cube", "3D/Cube");
+        NodeFactory::getInstance()->registerNode<Node3D, cocos2d::Node>("CCImEditor.Node3D", "3D/Node3D", NodeFlags_CanHaveComponents | NodeFlags_CanHaveChildren | NodeFlags_CanBeRoot);
+        NodeFactory::getInstance()->registerNode<Sprite3D, cocos2d::Sprite3D>("CCImEditor.Sprite3D", "3D/Sprite3D", NodeFlags_CanHaveComponents);
+        NodeFactory::getInstance()->registerNode<Geometry, QuadProxy>("CCImEditor.Quad", "3D/Quad", NodeFlags_CanHaveComponents);
+        NodeFactory::getInstance()->registerNode<Geometry, CubeProxy>("CCImEditor.Cube", "3D/Cube", NodeFlags_CanHaveComponents);
 
-        NodeFactory::getInstance()->registerNode<DirectionLight, DirectionLightProxy>("CCImEditor.DirectionLight", "3D/Light/Direction Light");
-        NodeFactory::getInstance()->registerNode<PointLight, PointLightProxy>("CCImEditor.PointLight", "3D/Light/Point Light");
-        NodeFactory::getInstance()->registerNode<BaseLight, AmbientLightProxy>("CCImEditor.AmbientLight", "3D/Light/Ambient Light");
-        NodeFactory::getInstance()->registerNode<SpotLight, SpotLightProxy>("CCImEditor.SpotLight", "3D/Light/Spot Light");
+        NodeFactory::getInstance()->registerNode<DirectionLight, DirectionLightProxy>("CCImEditor.DirectionLight", "3D/Light/Direction Light", NodeFlags_CanHaveComponents);
+        NodeFactory::getInstance()->registerNode<PointLight, PointLightProxy>("CCImEditor.PointLight", "3D/Light/Point Light", NodeFlags_CanHaveComponents);
+        NodeFactory::getInstance()->registerNode<BaseLight, AmbientLightProxy>("CCImEditor.AmbientLight", "3D/Light/Ambient Light", NodeFlags_CanHaveComponents);
+        NodeFactory::getInstance()->registerNode<SpotLight, SpotLightProxy>("CCImEditor.SpotLight", "3D/Light/Spot Light", NodeFlags_CanHaveComponents);
     }
 
     void Editor::registerComponents()
@@ -851,87 +830,13 @@ namespace CCImEditor
                 }
 
                 ImGui::Separator();
-
-                const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
-                for (NodeFactory::NodeTypeMap::const_iterator it = nodeTypes.begin(); it != nodeTypes.end(); it++)
-                {
-                    const NodeFactory::NodeType& nodeType = it->second;
-                    const std::string& displayName = nodeType.getDisplayName();
-                    const size_t lastSlash = displayName.find_last_of('/');
-                    
-                    bool isMenuOpen = true;
-                    if (lastSlash != std::string::npos)
-                        isMenuOpen = ImGuiHelper::BeginNestedMenu(displayName.substr(0, lastSlash).c_str());
-
-                    if (isMenuOpen)
-                    {
-                        const char* shortName = displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0);
-                        if (ImGui::MenuItem(shortName))
-                        {
-                            // add to selected node if possible
-                            cocos2d::Node* parent = nullptr;
-                            if (cocos2d::Node* node = getSelectedNode())
-                            {
-                                if (canHaveChildren(node))
-                                    parent = node;
-                            }
-
-                            // otherwise add to edting node
-                            if (!parent)
-                                parent = getEditingNode();
-
-                            if (parent)
-                            {
-                                if (cocos2d::Node* child = nodeType.create())
-                                {
-                                    child->setName(shortName);
-                                    addNode(parent, child);
-                                }
-                            }
-                            else
-                            {
-                                CCLOGERROR("Failed to add node, editing node does not exist!");
-                            }
-                        }
-                    }
-
-                    if (lastSlash != std::string::npos)
-                        ImGuiHelper::EndNestedMenu();
-                }
+                this->drawCreateNodeMenu();
                 ImGui::EndMenu();
             }
 
             if (ImGui::BeginMenu("Component"))
             {
-                const ComponentFactory::ComponentTypeMap& componentTypes = ComponentFactory::getInstance()->getComponentTypes();
-                for (const auto& [_, componentType] : componentTypes)
-                {
-                    const std::string& displayName = componentType.getDisplayName();
-                    const size_t lastSlash = displayName.find_last_of('/');
-                    
-                    bool isMenuOpen = true;
-                    if (lastSlash != std::string::npos)
-                        isMenuOpen = ImGuiHelper::BeginNestedMenu(displayName.substr(0, lastSlash).c_str());
-
-                    if (isMenuOpen)
-                    {
-                        const char* shortName = displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0);
-                        if (ImGui::MenuItem(shortName))
-                        {
-                            if (cocos2d::Node* node = getSelectedNode())
-                            {
-                                if (ImPropertyGroup* component = ComponentFactory::getInstance()->createComponent(componentType.getName()))
-                                {
-                                    static_cast<cocos2d::Component*>(component->getOwner())->setName(shortName);
-                                    queueAddComponent(node, component);
-                                }
-                            }
-                        }
-                    }
-
-                    if (lastSlash != std::string::npos)
-                        ImGuiHelper::EndNestedMenu();
-                }
+                this->drawCreateComponentMenu();
                 ImGui::EndMenu();
             }
 
@@ -1238,5 +1143,104 @@ namespace CCImEditor
         }
 
         return false;
+    }
+
+    void Editor::drawCreateNodeMenu()
+    {
+        const NodeFactory::NodeTypeMap& nodeTypes = NodeFactory::getInstance()->getNodeTypes();
+        for (NodeFactory::NodeTypeMap::const_iterator it = nodeTypes.begin(); it != nodeTypes.end(); it++)
+        {
+            const NodeFactory::NodeType& nodeType = it->second;
+            const std::string& displayName = nodeType.getDisplayName();
+            const size_t lastSlash = displayName.find_last_of('/');
+            
+            bool isMenuOpen = true;
+            if (lastSlash != std::string::npos)
+                isMenuOpen = ImGuiHelper::BeginNestedMenu(displayName.substr(0, lastSlash).c_str());
+
+            if (isMenuOpen)
+            {
+                const char* shortName = displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0);
+                if (ImGui::MenuItem(shortName))
+                {
+                    // add to selected node if possible
+                    cocos2d::Node* parent = nullptr;
+                    if (cocos2d::Node* node = getSelectedNode())
+                    {
+                        if (canHaveChildren(node))
+                            parent = node;
+                    }
+
+                    // otherwise add to edting node
+                    if (!parent)
+                        parent = getEditingNode();
+
+                    if (parent)
+                    {
+                        if (cocos2d::Node* child = nodeType.create())
+                        {
+                            child->setName(shortName);
+                            addNode(parent, child);
+                        }
+                    }
+                    else
+                    {
+                        CCLOGERROR("Failed to add node, editing node does not exist!");
+                    }
+                }
+            }
+
+            if (lastSlash != std::string::npos)
+                ImGuiHelper::EndNestedMenu();
+        }
+    }
+
+    void Editor::drawCreateComponentMenu()
+    {
+        const ComponentFactory::ComponentTypeMap& componentTypes = ComponentFactory::getInstance()->getComponentTypes();
+        for (const auto& [_, componentType] : componentTypes)
+        {
+            const std::string& displayName = componentType.getDisplayName();
+            const size_t lastSlash = displayName.find_last_of('/');
+            
+            bool isMenuOpen = true;
+            if (lastSlash != std::string::npos)
+                isMenuOpen = ImGuiHelper::BeginNestedMenu(displayName.substr(0, lastSlash).c_str());
+
+            if (isMenuOpen)
+            {
+                const char* shortName = displayName.c_str() + (lastSlash != std::string::npos ? lastSlash + 1 : 0);
+                if (ImGui::MenuItem(shortName))
+                {
+                    if (cocos2d::Node* node = getSelectedNode())
+                    {
+                        if (ImPropertyGroup* component = ComponentFactory::getInstance()->createComponent(componentType.getName()))
+                        {
+                            static_cast<cocos2d::Component*>(component->getOwner())->setName(shortName);
+                            queueAddComponent(node, component);
+                        }
+                    }
+                }
+            }
+
+            if (lastSlash != std::string::npos)
+                ImGuiHelper::EndNestedMenu();
+        }
+    }
+
+    void Editor::unpackRecursively(cocos2d::Node* node)
+    {
+        if (!node)
+            return;
+
+        if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer")))
+        {
+            drawer->setFilename("");
+        }
+
+        for (cocos2d::Node* child: node->getChildren())
+        {
+            unpackRecursively(child);
+        }
     }
 }

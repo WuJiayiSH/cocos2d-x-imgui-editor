@@ -11,7 +11,8 @@ namespace CCImEditor
     enum NodeFlags
     {
         NodeFlags_CanHaveChildren = 1,
-        NodeFlags_CanBeRoot = 1 << 1
+        NodeFlags_CanHaveComponents = 1 << 1,
+        NodeFlags_CanBeRoot = 1 << 2,
     };
 
     class NodeFactory

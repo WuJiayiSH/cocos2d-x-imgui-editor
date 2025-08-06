@@ -47,6 +47,9 @@ namespace CCImEditor
         void cut();
         void paste();
         bool removeSelectedNode();
+        void drawCreateNodeMenu();
+        void drawCreateComponentMenu();
+        static void unpackRecursively(cocos2d::Node* node);
 
         template<typename ...Args>
         void alert(const char* format, Args... args) {

@@ -70,6 +70,75 @@ namespace CCImEditor
                 Editor::getInstance()->setUserObject(s_selectedNodePath, node);
             }
 
+            // Add context menu
+            if (ImGui::BeginPopupContextItem())
+            {
+                Editor::getInstance()->setUserObject(s_selectedNodePath, node);
+                NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer"));
+
+                if (drawer && drawer->canHaveChildren())
+                {
+                    if (ImGui::BeginMenu("Node"))
+                    {
+                        Editor::getInstance()->drawCreateNodeMenu();
+                        ImGui::EndMenu();
+                    }
+
+                    ImGui::Separator();
+                }
+
+                if (drawer && drawer->canHaveComponents())
+                {
+                    if (ImGui::BeginMenu("Component"))
+                    {
+                        Editor::getInstance()->drawCreateComponentMenu();
+                        ImGui::EndMenu();
+                    }
+
+                    ImGui::Separator();
+                }
+
+                if (ImGui::MenuItem("Cut"))
+                {
+                    Editor::getInstance()->cut();
+                }
+
+                if (ImGui::MenuItem("Copy"))
+                {
+                    Editor::getInstance()->copy();
+                }
+
+                if (ImGui::MenuItem("Paste"))
+                {
+                    Editor::getInstance()->paste();
+                }
+
+                ImGui::Separator();
+
+                if (drawer && !drawer->getFilename().empty())
+                {
+                    if (ImGui::MenuItem("Unpack"))
+                    {
+                        drawer->setFilename("");
+                    }
+
+                    if (ImGui::MenuItem("Unpack Recursively"))
+                    {
+                        Editor::unpackRecursively(node);
+                    }
+
+                    ImGui::Separator();
+                }
+
+                
+                if (ImGui::MenuItem("Delete"))
+                {
+                    Editor::getInstance()->removeSelectedNode();
+                }
+
+                ImGui::EndPopup();
+            }
+
             if (open)
             {
                 if (!hideChildren)

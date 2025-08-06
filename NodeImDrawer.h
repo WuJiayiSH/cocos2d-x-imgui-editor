@@ -205,7 +205,7 @@ namespace CCImEditor
         void draw();
         void serialize(cocos2d::ValueMap& target){_nodePropertyGroup->serialize(target);}
         void deserialize(const cocos2d::ValueMap& source){_nodePropertyGroup->deserialize(source);}
-        const std::string& getTypeName() {return _nodePropertyGroup->getTypeName();}
+        const std::string& getTypeName() const {return _nodePropertyGroup->getTypeName();}
         const std::string& getShortName() const {return _nodePropertyGroup->getShortName();}
         ImPropertyGroup* getNodePropertyGroup() {return _nodePropertyGroup;}
 
@@ -216,7 +216,13 @@ namespace CCImEditor
         void setComponentPropertyGroup(std::string name, ImPropertyGroup* group);
         ImPropertyGroup* getComponentPropertyGroup(std::string name) {return _componentPropertyGroups[name];}
         const std::map<std::string, cocos2d::RefPtr<ImPropertyGroup>>& getComponentPropertyGroups() const {return _componentPropertyGroups;}
+
+        bool canHaveChildren() const;
+        bool canHaveComponents() const;
+        bool canBeRoot() const;
+
     private:
+        uint32_t getMask() const;
         cocos2d::RefPtr<ImPropertyGroup> _nodePropertyGroup;
         std::map<std::string, cocos2d::RefPtr<ImPropertyGroup>> _componentPropertyGroups;
         std::string _filename;
