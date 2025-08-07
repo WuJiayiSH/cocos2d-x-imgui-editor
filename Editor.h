@@ -52,7 +52,7 @@ namespace CCImEditor
         static void unpackRecursively(cocos2d::Node* node);
 
         template<typename ...Args>
-        void alert(const char* format, Args... args) {
+        void alert(const char* format, Args&&... args) CC_FORMAT_PRINTF(1, 2) {
             _alertText = cocos2d::StringUtils::format(format, std::forward<Args>(args)...);
         }
 
