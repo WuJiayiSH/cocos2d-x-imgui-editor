@@ -76,7 +76,7 @@ namespace CCImEditor
         if (!selectedNode)
             return;
 
-        cocos2d::Component* drawer = selectedNode->getComponent("CCImEditor.NodeImDrawer");
+        NodeImDrawer* drawer = selectedNode->getComponent<NodeImDrawer>();
         if (!drawer)
             return;
 
@@ -105,8 +105,7 @@ namespace CCImEditor
             transform.decompose(&scale, &rotation, &position);
             if (_gizmoOperation == ImGuizmo::TRANSLATE)
             {
-                NodeImDrawer* nodeImDrawer = static_cast<NodeImDrawer*>(drawer);
-                if (dynamic_cast<Node2D*>(nodeImDrawer->getNodePropertyGroup()))
+                if (dynamic_cast<Node2D*>(drawer->getNodePropertyGroup()))
                 {
                     cocos2d::Vec2 anchorPoint = selectedNode->getAnchorPoint();
                     cocos2d::Size contentSize = selectedNode->getContentSize();
@@ -400,7 +399,7 @@ namespace CCImEditor
         Vector<Node*>& children = node->getChildren();
         for (Node* child : children)
         {
-            if (child->getComponent("CCImEditor.NodeImDrawer"))
+            if (child->getComponent<NodeImDrawer>())
             {
                 if (Sprite3D* sprite3D = dynamic_cast<Sprite3D*>(child))
                 {

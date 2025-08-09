@@ -97,7 +97,7 @@ namespace CCImEditor
         {
             if (node)
             {
-                if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer")))
+                if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
                 {
                     return drawer->canHaveChildren();
                 }
@@ -112,7 +112,7 @@ namespace CCImEditor
             if (!node)
                 return false;
 
-            NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer"));
+            NodeImDrawer* drawer = node->getComponent<NodeImDrawer>();
             if (!drawer)
                 return false;
 
@@ -177,7 +177,7 @@ namespace CCImEditor
                 *node = Editor::loadFile(file);
                 if (*node)
                 {
-                    NodeImDrawer* drawer = static_cast<NodeImDrawer*>((*node)->getComponent("CCImEditor.NodeImDrawer"));
+                    NodeImDrawer* drawer = (*node)->getComponent<NodeImDrawer>();
                     if (drawer->getTypeName() != typeIt->second.asString())
                     {
                         CCLOGWARN("Types do not match when loading %s, discard", file.c_str());
@@ -203,7 +203,7 @@ namespace CCImEditor
             cocos2d::ValueMap::const_iterator propertiesIt = source.find("properties");
             if (propertiesIt != source.end() && propertiesIt->second.getType() == cocos2d::Value::Type::MAP)
             {
-                NodeImDrawer* drawer = static_cast<NodeImDrawer*>((*node)->getComponent("CCImEditor.NodeImDrawer"));
+                NodeImDrawer* drawer = (*node)->getComponent<NodeImDrawer>();
                 drawer->deserialize(propertiesIt->second.asValueMap());
             }
 
@@ -236,7 +236,7 @@ namespace CCImEditor
                     owner->setName(name);
                     (*node)->addComponent(owner);
 
-                    NodeImDrawer* drawer = static_cast<NodeImDrawer*>((*node)->getComponent("CCImEditor.NodeImDrawer"));
+                    NodeImDrawer* drawer = (*node)->getComponent<NodeImDrawer>();
                     drawer->setComponentPropertyGroup(name, component);
                 }
             }
@@ -721,7 +721,7 @@ namespace CCImEditor
                     {
                         if (cocos2d::Node* importedNode = Editor::loadFile(file))
                         {
-                            if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(importedNode->getComponent("CCImEditor.NodeImDrawer")))
+                            if (NodeImDrawer* drawer = importedNode->getComponent<NodeImDrawer>())
                                 drawer->setFilename(file);
 
                             cocos2d::Node* parent = nullptr;
@@ -819,7 +819,7 @@ namespace CCImEditor
                 {
                     if (cocos2d::Node* node = getSelectedNode())
                     {
-                        if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer")))
+                        if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
                             drawer->setFilename("");
                     }
                 }
@@ -1020,7 +1020,7 @@ namespace CCImEditor
     {
         if (cocos2d::Node* node = getSelectedNode())
         {
-            if (Editor::getInstance()->getEditingNode() != node && node->getComponent("CCImEditor.NodeImDrawer"))
+            if (Editor::getInstance()->getEditingNode() != node && node->getComponent<NodeImDrawer>())
             {
                 if (RemoveNode* cmd = RemoveNode::create(node))
                 {
@@ -1233,7 +1233,7 @@ namespace CCImEditor
         if (!node)
             return;
 
-        if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer")))
+        if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
         {
             drawer->setFilename("");
         }

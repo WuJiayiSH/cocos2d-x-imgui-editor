@@ -7,7 +7,7 @@ namespace CCImEditor
         cocos2d::Component* owner = static_cast<cocos2d::Component*>(_component->getOwner());
         _node->removeComponent(owner);
 
-        if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(_node->getComponent("CCImEditor.NodeImDrawer")))
+        if (NodeImDrawer* drawer = _node->getComponent<NodeImDrawer>())
         {
             drawer->setComponentPropertyGroup(owner->getName(), nullptr);
         }
@@ -18,7 +18,7 @@ namespace CCImEditor
         cocos2d::Component* owner = static_cast<cocos2d::Component*>(_component->getOwner());
         _node->addComponent(owner);
 
-        if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(_node->getComponent("CCImEditor.NodeImDrawer")))
+        if (NodeImDrawer* drawer = _node->getComponent<NodeImDrawer>())
         {
             drawer->setComponentPropertyGroup(owner->getName(), _component);
         }

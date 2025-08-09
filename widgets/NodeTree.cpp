@@ -35,7 +35,7 @@ namespace CCImEditor
 
             // Hide children if node was loaded from file
             bool hideChildren = false;
-            if (NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer")))
+            if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
             {
                 hideChildren = !drawer->getFilename().empty() && !Editor::getInstance()->isDebugMode();
             }
@@ -74,7 +74,7 @@ namespace CCImEditor
             if (ImGui::BeginPopupContextItem())
             {
                 Editor::getInstance()->setUserObject(s_selectedNodePath, node);
-                NodeImDrawer* drawer = static_cast<NodeImDrawer*>(node->getComponent("CCImEditor.NodeImDrawer"));
+                NodeImDrawer* drawer = node->getComponent<NodeImDrawer>();
 
                 if (drawer && drawer->canHaveChildren())
                 {
