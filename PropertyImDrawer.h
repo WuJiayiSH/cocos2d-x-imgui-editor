@@ -7,6 +7,7 @@
 #include "imgui/misc/cpp/imgui_stdlib.h"
 #include "Editor.h"
 #include <magic_enum/magic_enum.hpp>
+#include <algorithm>
 
 #define CC_DECLARE_FLAGS(T) \
 template <> \
@@ -75,6 +76,10 @@ namespace CCImEditor
             v = source.asInt();
             return true;
         }
+
+        static int lerp(const int& v1, const int& v2, float t) {
+            return (int)(v1 + (v2 - v1) * t);
+        }
     };
 
     template <>
@@ -92,6 +97,10 @@ namespace CCImEditor
         static bool deserialize(const cocos2d::Value& source, float& v) {
             v = source.asFloat();
             return true;
+        }
+
+        static float lerp(const float& v1, const float& v2, float t) {
+            return v1 + (v2 - v1) * t;
         }
     };
 
@@ -117,6 +126,10 @@ namespace CCImEditor
         static bool deserialize(const cocos2d::Value& source, float& v) {
             v = source.asFloat();
             return true;
+        }
+
+        static float lerp(const float& v1, const float& v2, float t) {
+            return v1 + (v2 - v1) * t;
         }
     };
 
@@ -146,6 +159,10 @@ namespace CCImEditor
             vec.y = v[1].asFloat();
             return true;
         }
+
+        static cocos2d::Vec2 lerp(const cocos2d::Vec2& v1, const cocos2d::Vec2& v2, float t) {
+            return v1.lerp(v2, t);
+        }
     };
 
     template <>
@@ -173,6 +190,10 @@ namespace CCImEditor
             vec.width = v[0].asFloat();
             vec.height = v[1].asFloat();
             return true;
+        }
+
+        static cocos2d::Size lerp(const cocos2d::Size& v1, const cocos2d::Size& v2, float t) {
+            return v1 + (v2 - v1) * t;
         }
     };
 
@@ -203,6 +224,10 @@ namespace CCImEditor
             vec.y = v[1].asFloat();
             vec.z = v[2].asFloat();
             return true;
+        }
+
+        static cocos2d::Vec3 lerp(const cocos2d::Vec3& v1, const cocos2d::Vec3& v2, float t) {
+            return v1.lerp(v2, t);
         }
     };
 
@@ -235,6 +260,14 @@ namespace CCImEditor
             color.g = v[1].asByte();
             color.b = v[2].asByte();
             return true;
+        }
+
+        static cocos2d::Color3B lerp(const cocos2d::Color3B& v1, const cocos2d::Color3B& v2, float t) {
+            cocos2d::Color3B o;
+            o.r = (GLubyte)(v1.r + (v2.r - v1.r) * t);
+            o.g = (GLubyte)(v1.g + (v2.g - v1.g) * t);
+            o.b = (GLubyte)(v1.b + (v2.b - v1.b) * t);
+            return o;
         }
     };
 
@@ -270,6 +303,15 @@ namespace CCImEditor
             color.b = v[2].asByte();
             color.a = v[3].asByte();
             return true;
+        }
+
+        static cocos2d::Color4B lerp(const cocos2d::Color4B& v1, const cocos2d::Color4B& v2, float t) {
+            cocos2d::Color4B o;
+            o.r = (GLubyte)(v1.r + (v2.r - v1.r) * t);
+            o.g = (GLubyte)(v1.g + (v2.g - v1.g) * t);
+            o.b = (GLubyte)(v1.b + (v2.b - v1.b) * t);
+            o.a = (GLubyte)(v1.a + (v2.a - v1.a) * t);
+            return o;
         }
     };
 

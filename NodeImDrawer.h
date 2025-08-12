@@ -4,6 +4,8 @@
 #include "cocos2d.h"
 #include "PropertyImDrawer.h"
 #include "commands/CustomCommand.h"
+#include <type_traits>
+#include <utility>
 
 namespace CCImEditor
 {
@@ -12,6 +14,15 @@ namespace CCImEditor
         struct DefaultArgumentTag {};
 
         struct DefaultGetterBase{};
+
+        // Deduce type has a lerp function
+        template <typename T, typename U, typename = void>
+        struct HasLerp : std::false_type {};
+
+        template <typename T, typename U>
+        struct HasLerp<T, U, std::void_t<
+            decltype(T::lerp(std::declval<U>(), std::declval<U>(), std::declval<float>()))
+        >> : std::true_type {};
     }
 
     class ImPropertyGroup : public cocos2d::Ref
@@ -21,7 +32,8 @@ namespace CCImEditor
         {
             DRAW,
             SERIALIZE,
-            DESERIALIZE
+            DESERIALIZE,
+            PLAY,
         };
 
         friend class NodeFactory;
@@ -29,6 +41,8 @@ namespace CCImEditor
         virtual void draw() {};
         void serialize(cocos2d::ValueMap&);
         void deserialize(const cocos2d::ValueMap&);
+        void deserializeAnimations(const cocos2d::ValueMap&);
+        void play(const std::string& animation, int frame);
         const std::string& getTypeName() const {return _typeName;}
         const std::string& getShortName() const {return _shortName;}
         virtual bool init();
@@ -126,6 +140,61 @@ namespace CCImEditor
                     }
                 }
             }
+            else if (_context == Context::PLAY)
+            {
+                do
+                {
+                    auto animation = _animations.find(*_animation);
+                    if (animation == _animations.end())
+                        break;
+
+                    auto property = animation->second.find(key);
+                    if (property == animation->second.end())
+                        break;
+
+                    auto it1 = property->second.upper_bound(_frame);
+                    auto it0 = std::prev(it1);
+                    if (it1 != property->second.end() && it0 != property->second.end())
+                    {
+                        if constexpr (Internal::HasLerp<PropertyImDrawer<PropertyOrDrawerType>, PropertyType>::value)
+                        {
+                            PropertyType v0;
+                            PropertyType v1;
+                            if (PropertyImDrawer<PropertyOrDrawerType>::deserialize(it0->second, v0) &&
+                                PropertyImDrawer<PropertyOrDrawerType>::deserialize(it1->second, v1))
+                            {
+                                float offset = (float)(_frame - it0->first) / (it1->first - it0->first);
+                                PropertyType v = PropertyImDrawer<PropertyOrDrawerType>::lerp(v0, v1, offset);
+                                std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                            }
+                        }
+                        else
+                        {
+                            PropertyType v0;
+                            if (PropertyImDrawer<PropertyOrDrawerType>::deserialize(it0->second, v0))
+                            {
+                                std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v0);
+                            }
+                        }
+                    }
+                    else if (it0 != property->second.end())
+                    {
+                        PropertyType v0;
+                        if (PropertyImDrawer<PropertyOrDrawerType>::deserialize(it0->second, v0))
+                        {
+                            std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v0);
+                        }
+                    }
+                    else if (it1 != property->second.end())
+                    {
+                        PropertyType v1;
+                        if (PropertyImDrawer<PropertyOrDrawerType>::deserialize(it1->second, v1))
+                        {
+                            std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v1);
+                        }
+                    }
+                } while (false);
+            }
             else if (_context == Context::SERIALIZE)
             {
                 const auto& v = getFromCustomValueOrGetter<DrawerType, PropertyType>(key, std::forward<Getter>(getter), std::forward<Object>(object));
@@ -172,6 +241,11 @@ namespace CCImEditor
         std::function<void()> _undo;
         ImGuiID _activeID = 0;
         cocos2d::RefPtr<cocos2d::Ref> _owner;
+
+        // animations
+        const std::string* _animation;
+        int _frame;
+        std::unordered_map<std::string, std::unordered_map<std::string, std::map<int, cocos2d::Value>>> _animations;
     };
 
     template <class T>
@@ -205,6 +279,8 @@ namespace CCImEditor
         void draw();
         void serialize(cocos2d::ValueMap& target){_nodePropertyGroup->serialize(target);}
         void deserialize(const cocos2d::ValueMap& source){_nodePropertyGroup->deserialize(source);}
+        void play(const std::string& animation);
+
         const std::string& getTypeName() const {return _nodePropertyGroup->getTypeName();}
         const std::string& getShortName() const {return _nodePropertyGroup->getShortName();}
         ImPropertyGroup* getNodePropertyGroup() {return _nodePropertyGroup;}
@@ -221,7 +297,13 @@ namespace CCImEditor
         bool canHaveComponents() const;
         bool canBeRoot() const;
 
+        void update(float dt) override;
+
     private:
+        std::string _animation;
+        float _elapsed;
+        uint16_t _sample = 30;
+
         uint32_t getMask() const;
         cocos2d::RefPtr<ImPropertyGroup> _nodePropertyGroup;
         std::map<std::string, cocos2d::RefPtr<ImPropertyGroup>> _componentPropertyGroups;

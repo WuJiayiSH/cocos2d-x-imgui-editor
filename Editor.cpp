@@ -232,6 +232,12 @@ namespace CCImEditor
                         component->deserialize(propertiesIt->second.asValueMap());
                     }
 
+                    cocos2d::ValueMap::const_iterator animationsIt = componentValMap.find("animations");
+                    if (animationsIt != componentValMap.end() && animationsIt->second.getType() == cocos2d::Value::Type::MAP)
+                    {
+                        component->deserializeAnimations(animationsIt->second.asValueMap());
+                    }
+
                     cocos2d::Component* owner = static_cast<cocos2d::Component*>(component->getOwner());
                     owner->setName(name);
                     (*node)->addComponent(owner);
@@ -239,6 +245,13 @@ namespace CCImEditor
                     NodeImDrawer* drawer = (*node)->getComponent<NodeImDrawer>();
                     drawer->setComponentPropertyGroup(name, component);
                 }
+            }
+
+            cocos2d::ValueMap::const_iterator animationsIt = source.find("animations");
+            if (animationsIt != source.end() && animationsIt->second.getType() == cocos2d::Value::Type::MAP)
+            {
+                NodeImDrawer* drawer = (*node)->getComponent<NodeImDrawer>();
+                drawer->getNodePropertyGroup()->deserializeAnimations(animationsIt->second.asValueMap());
             }
 
             cocos2d::ValueMap::const_iterator childrenIt = source.find("children");
