@@ -98,6 +98,8 @@ namespace CCImEditor
             // use PropertyType if DrawerType is not specified
             using PropertyOrDrawerType = typename std::conditional<std::is_same<DrawerType, Internal::DefaultArgumentTag>::value, PropertyType, DrawerType>::type;
 
+            using PropertyImDrawerType = typename PropertyImDrawer<PropertyOrDrawerType>;
+
             const char* key;
             if (key = strstr(label, "###"))
                 key += 3;
@@ -110,7 +112,7 @@ namespace CCImEditor
                 using ObjectType = typename std::remove_pointer<typename std::remove_cv<typename std::remove_reference<Object>::type>::type>::type;
 
                 auto v = getFromCustomValueOrGetter<DrawerType, PropertyType>(key, std::forward<Getter>(getter), std::forward<Object>(object));
-                if (PropertyImDrawer<PropertyOrDrawerType>::draw(label, v, std::forward<Args>(args)...))
+                if (PropertyImDrawerType::draw(label, v, std::forward<Args>(args)...))
                 {
                     if (!_undo)
                     {
@@ -123,7 +125,7 @@ namespace CCImEditor
                         CC_ASSERT(_activeID == ImGui::GetItemID());
                     }
 
-                    PropertyImDrawer<PropertyOrDrawerType>::serialize(_customValue[key], v);
+                    PropertyImDrawerType::serialize(_customValue[key], v);
                     std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
                 }
                 else
@@ -156,22 +158,22 @@ namespace CCImEditor
                     auto it0 = std::prev(it1);
                     if (it1 != property->second.end() && it0 != property->second.end())
                     {
-                        if constexpr (Internal::HasLerp<PropertyImDrawer<PropertyOrDrawerType>, PropertyType>::value)
+                        if constexpr (Internal::HasLerp<PropertyImDrawerType, PropertyType>::value)
                         {
                             PropertyType v0;
                             PropertyType v1;
-                            if (PropertyImDrawer<PropertyOrDrawerType>::deserialize(it0->second, v0) &&
-                                PropertyImDrawer<PropertyOrDrawerType>::deserialize(it1->second, v1))
+                            if (PropertyImDrawerType::deserialize(it0->second, v0) &&
+                                PropertyImDrawerType::deserialize(it1->second, v1))
                             {
                                 float offset = (float)(_frame - it0->first) / (it1->first - it0->first);
-                                PropertyType v = PropertyImDrawer<PropertyOrDrawerType>::lerp(v0, v1, offset);
+                                PropertyType v = PropertyImDrawerType::lerp(v0, v1, offset);
                                 std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
                             }
                         }
                         else
                         {
                             PropertyType v0;
-                            if (PropertyImDrawer<PropertyOrDrawerType>::deserialize(it0->second, v0))
+                            if (PropertyImDrawerType::deserialize(it0->second, v0))
                             {
                                 std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v0);
                             }
@@ -180,7 +182,7 @@ namespace CCImEditor
                     else if (it0 != property->second.end())
                     {
                         PropertyType v0;
-                        if (PropertyImDrawer<PropertyOrDrawerType>::deserialize(it0->second, v0))
+                        if (PropertyImDrawerType::deserialize(it0->second, v0))
                         {
                             std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v0);
                         }
@@ -188,7 +190,7 @@ namespace CCImEditor
                     else if (it1 != property->second.end())
                     {
                         PropertyType v1;
-                        if (PropertyImDrawer<PropertyOrDrawerType>::deserialize(it1->second, v1))
+                        if (PropertyImDrawerType::deserialize(it1->second, v1))
                         {
                             std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v1);
                         }
@@ -198,7 +200,7 @@ namespace CCImEditor
             else if (_context == Context::SERIALIZE)
             {
                 const auto& v = getFromCustomValueOrGetter<DrawerType, PropertyType>(key, std::forward<Getter>(getter), std::forward<Object>(object));
-                PropertyImDrawer<PropertyOrDrawerType>::serialize((*_contextValue)[key], v);
+                PropertyImDrawerType::serialize((*_contextValue)[key], v);
             }
             else if (_context == Context::DESERIALIZE)
             {
@@ -206,9 +208,9 @@ namespace CCImEditor
                 if (it != _contextValue->end())
                 {
                     PropertyType v;
-                    if (PropertyImDrawer<PropertyOrDrawerType>::deserialize(it->second, v))
+                    if (PropertyImDrawerType::deserialize(it->second, v))
                     {
-                        PropertyImDrawer<PropertyOrDrawerType>::serialize(_customValue[key], v);
+                        PropertyImDrawerType::serialize(_customValue[key], v);
                         std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
                     }
                 }
