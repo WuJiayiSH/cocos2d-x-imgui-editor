@@ -27,7 +27,7 @@ namespace CCImEditor
             };
 
             std::vector<Item> _items;
-
+            std::unordered_map<std::string, bool> _animationExists;
             int GetFrameMin() const
             {
                 return 0;
@@ -55,6 +55,8 @@ namespace CCImEditor
             void prepare(const std::string &animation);
 
             void update(cocos2d::Node *node, const std::string &animation);
+            void rename(cocos2d::Node *node, const std::string &animation, const std::string &newAniamtionName);
+            void remove(cocos2d::Node *node, const std::string &animation);
 
             int GetItemCount() const override
             {
@@ -108,7 +110,16 @@ namespace CCImEditor
 
         Internal::Sequence _sequence;
         bool _recording = false;
-        bool _renaming = false;
+        enum RenameState
+        {
+            NotActivated,
+            Editing,
+            Activated,
+        };
+        RenameState _renameState = RenameState::NotActivated;
+
+        std::string _animation;
+        std::string _newAnimationName;
     };
 }
 

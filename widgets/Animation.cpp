@@ -16,6 +16,7 @@ namespace CCImEditor
         void Sequence::prepare(const std::string &animation)
         {
             _items.clear();
+            _animationExists.clear();
             if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
             {
                 update(editingNode, animation);
@@ -27,23 +28,29 @@ namespace CCImEditor
             if (NodeImDrawer *drawer = node->getComponent<NodeImDrawer>())
             {
                 ImPropertyGroup *group = drawer->getNodePropertyGroup();
-                auto it = group->_animations.find(animation);
-                if (it != group->_animations.end())
+                for (const auto&[animationName, animationValue] : group->_animations)
                 {
-                    for (const auto &[propertyName, propertyVals] : it->second)
+                    _animationExists[animationName] = true;
+                    if (animationName == animation)
                     {
-                        _items.push_back(Item(propertyName, propertyVals));
+                        for (const auto &[propertyName, propertyVals] : animationValue)
+                        {
+                            _items.push_back(Item(propertyName, propertyVals));
+                        }
                     }
                 }
 
                 for (const auto &[_, group] : drawer->getComponentPropertyGroups())
                 {
-                    auto it = group->_animations.find(animation);
-                    if (it != group->_animations.end())
+                    for (const auto&[animationName, animationValue] : group->_animations)
                     {
-                        for (const auto &[propertyName, propertyVals] : it->second)
+                        _animationExists[animationName] = true;
+                        if (animationName == animation)
                         {
-                            _items.push_back(Item(propertyName, propertyVals));
+                            for (const auto &[propertyName, propertyVals] : animationValue)
+                            {
+                                _items.push_back(Item(propertyName, propertyVals));
+                            }
                         }
                     }
                 }
@@ -52,6 +59,56 @@ namespace CCImEditor
             for (auto child : node->getChildren())
             {
                 update(child, animation);
+            }
+        }
+
+        void Sequence::remove(cocos2d::Node *node, const std::string &animation)
+        {
+            if (NodeImDrawer *drawer = node->getComponent<NodeImDrawer>())
+            {
+                ImPropertyGroup *group = drawer->getNodePropertyGroup();
+                group->_animations.erase(animation);
+                
+
+                for (const auto &[_, group] : drawer->getComponentPropertyGroups())
+                {
+                    group->_animations.erase(animation);
+                }
+            }
+
+            for (auto child : node->getChildren())
+            {
+                remove(child, animation);
+            }
+        }
+
+        void Sequence::rename(cocos2d::Node *node, const std::string &animation, const std::string &newAniamtionName)
+        {
+            if (NodeImDrawer *drawer = node->getComponent<NodeImDrawer>())
+            {
+                ImPropertyGroup *group = drawer->getNodePropertyGroup();
+                auto node = group->_animations.extract(animation);
+                if (!node.empty())
+                {
+                    node.key() = newAniamtionName;
+                    group->_animations.insert(std::move(node));
+                }
+                
+
+                for (const auto &[_, group] : drawer->getComponentPropertyGroups())
+                {
+                    auto node = group->_animations.extract(animation);
+                    if (!node.empty())
+                    {
+                        node.key() = newAniamtionName;
+                        group->_animations.insert(std::move(node));
+                    }
+                }
+            }
+
+            for (auto child : node->getChildren())
+            {
+                rename(child, animation, newAniamtionName);
             }
         }
 
@@ -136,93 +193,113 @@ namespace CCImEditor
         {
 
             ImGui::SameLine();
-            static std::string text = "Test";
+            //static std::string text = "Test";
             //    
             //    ImGui::SameLine();
             ImGui::SetNextItemWidth(200.0f);
-
-            
-static bool fit = true;
-            if (_renaming)
+            if (_renameState == RenameState::NotActivated)
             {
-                if(fit)
+                if (_animation.empty())
                 {
-                    fit = false;
-                    ImGui::SetKeyboardFocusHere();
-                 ImGui::InputText("###ssss", &text, ImGuiInputTextFlags_AutoSelectAll);
-                }
-                else
-                {
-                 ImGui::InputText("###ssss", &text);
-                 if (!ImGui::IsItemActive())
-                 {
-                     _renaming = false;
-                 }
-                }
-                 
-                
-                // ImGui::SetItemDefaultFocus();
-                 
-
-            }
-            else
-            {
-                if (ImGui::BeginCombo("###sss", "Test"))
-                {
-                    auto isSelected = true;
-                    if (ImGui::Selectable("Test", isSelected))
+                    for (const auto&[animationName, exists] : _sequence._animationExists)
                     {
+                        if (exists)
+                        {
+                            _animation = animationName;
+                            break;
+                        }
+                    }
+                }
+
+                if (_animation.empty())
+                    _animation = "unnamed";
+
+                if (ImGui::BeginCombo("###AnimationName", _animation.c_str()))
+                {
+                    for (const auto&[animationName, _] : _sequence._animationExists)
+                    {
+                        if (ImGui::Selectable(animationName.c_str(), animationName == _animation))
+                        {
+                            _animation = animationName;
+                        }
                     }
 
                     ImGui::Separator();
                     if (ImGui::Selectable("New Animation", false))
                     {
+                        _animation = "unnamed";
+                        int count = 1;
+                        while (_sequence._animationExists[_animation])
+                        {
+                            _animation = cocos2d::StringUtils::format("unnamed (%d)", count++);
+                        }
                     }
 
                     if (ImGui::Selectable("Delete Animation", false))
                     {
+                        _sequence._animationExists[_animation] = false;
+                        if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
+                        {
+                            _sequence.remove(editingNode, _animation);
+                        }
+
+                        _animation = "unnamed";
+                        for (const auto&[animationName, exists] : _sequence._animationExists)
+                        {
+                            if (exists)
+                            {
+                                _animation = animationName;
+                                break;
+                            }
+                        }
                     }
 
                     if (ImGui::Selectable("Rename Animation", false))
                     {
-                        _renaming = true;
+                        _renameState = RenameState::Activated;
                     }
+
                     ImGui::EndCombo();
                 }
             }
+            else if(_renameState == RenameState::Activated)
+            {
+                ImGui::SetKeyboardFocusHere();
+                _newAnimationName = _animation;
+                ImGui::InputText("###AnimationName", &_newAnimationName, ImGuiInputTextFlags_AutoSelectAll);
+                _renameState = RenameState::Editing;
+            }
+            else if(_renameState == RenameState::Editing)
+            {
+                ImGui::InputText("###AnimationName", &_newAnimationName);
+                if (!ImGui::IsItemActive())
+                {
+                    _renameState = RenameState::NotActivated;
+                    if (_newAnimationName != _animation)
+                    {
+                        if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
+                        {
+                            _sequence.rename(editingNode, _animation, _newAnimationName);
+                        }
+
+                        _animation = _newAnimationName;
+                    }
+                }
+            }
             
-            // ImGui::SameLine();
-            // if (ImGui::Button("-"))
-            // {
-            //     _playing = false;
-            // }
-
-            // ImGui::SameLine();
-            // if (ImGui::Button("+"))
-            // {
-            //     _playing = false;
-            // }
-
-            // ImGui::SameLine();
-            // if (ImGui::Button("Rename"))
-            // {
-            //     _playing = false;
-            // }
-
-            float spacing = 0.0f;
             ImGui::SameLine();
             if (Internal::AnimationButton("FirstF"))
             {
                 _currentFrame = _sequence.GetFrameMin();
             }
 
-            ImGui::SameLine(0.0f, spacing);
+            ImGui::SameLine(0.0f, 0.0f);
             if (Internal::AnimationButton("PrevF"))
             {
                 _currentFrame--;
             }
 
-            ImGui::SameLine(0.0f, spacing);
+            ImGui::SameLine(0.0f, 0.0f);
 
             if (!_playing && Internal::AnimationButton("Play"))
             {
@@ -234,13 +311,13 @@ static bool fit = true;
                 _playing = false;
             }
 
-            ImGui::SameLine(0.0f, spacing);
+            ImGui::SameLine(0.0f, 0.0f);
             if (Internal::AnimationButton("NextF"))
             {
                 _currentFrame++;
             }
 
-            ImGui::SameLine(0.0f, spacing);
+            ImGui::SameLine(0.0f, 0.0f);
             if (Internal::AnimationButton("LastF"))
             {
                 _currentFrame = _sequence.GetFrameMax();
@@ -296,17 +373,17 @@ static bool fit = true;
             static int firstFrame = 0;
             static bool expanded = true;
 
-            _sequence.prepare("Test");
+            _sequence.prepare(_animation);
             ImSequencer::Sequencer(&_sequence, &_currentFrame, &expanded, &selectedEntry, &firstFrame, ImSequencer::SEQUENCER_EDIT_ALL);
 
             if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
             {
                 if (NodeImDrawer *drawer = editingNode->getComponent<NodeImDrawer>())
                 {
-                    drawer->getNodePropertyGroup()->play("Test", _currentFrame);
+                    drawer->getNodePropertyGroup()->play(_animation, _currentFrame);
                     for (const auto &[_, group] : drawer->getComponentPropertyGroups())
                     {
-                        group->play("Test", _currentFrame);
+                        group->play(_animation, _currentFrame);
                     }
                 }
             }
