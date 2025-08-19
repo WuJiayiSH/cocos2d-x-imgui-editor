@@ -57,7 +57,7 @@ namespace CCImEditor
             void update(cocos2d::Node *node, const std::string &animation);
             void rename(cocos2d::Node *node, const std::string &animation, const std::string &newAniamtionName);
             void remove(cocos2d::Node *node, const std::string &animation);
-
+            void record(cocos2d::Node *node, const std::string &animation, int frame);
             int GetItemCount() const override
             {
                 return _items.size();

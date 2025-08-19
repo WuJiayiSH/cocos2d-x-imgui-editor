@@ -82,6 +82,27 @@ namespace CCImEditor
             }
         }
 
+        void Sequence::record(cocos2d::Node *node, const std::string &animation, int frame)
+        {
+            if (NodeImDrawer *drawer = node->getComponent<NodeImDrawer>())
+            {
+                ImPropertyGroup *group = drawer->getNodePropertyGroup();
+                group->_animation = &animation;
+                group->_frame = frame;
+
+                for (const auto &[_, group] : drawer->getComponentPropertyGroups())
+                {
+                    group->_animation = &animation;
+                    group->_frame = frame;
+                }
+            }
+
+            for (auto child : node->getChildren())
+            {
+                record(child, animation,  frame);
+            }
+        }
+
         void Sequence::rename(cocos2d::Node *node, const std::string &animation, const std::string &newAniamtionName)
         {
             if (NodeImDrawer *drawer = node->getComponent<NodeImDrawer>())
@@ -376,15 +397,27 @@ namespace CCImEditor
             _sequence.prepare(_animation);
             ImSequencer::Sequencer(&_sequence, &_currentFrame, &expanded, &selectedEntry, &firstFrame, ImSequencer::SEQUENCER_EDIT_ALL);
 
-            if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
+            if (_playing)
             {
-                if (NodeImDrawer *drawer = editingNode->getComponent<NodeImDrawer>())
+                if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
                 {
-                    drawer->getNodePropertyGroup()->play(_animation, _currentFrame);
-                    for (const auto &[_, group] : drawer->getComponentPropertyGroups())
+                    if (NodeImDrawer *drawer = editingNode->getComponent<NodeImDrawer>())
                     {
-                        group->play(_animation, _currentFrame);
+                        drawer->getNodePropertyGroup()->play(_animation, _currentFrame);
+                        for (const auto &[_, group] : drawer->getComponentPropertyGroups())
+                        {
+                            group->play(_animation, _currentFrame);
+                        }
                     }
+                }
+            }
+            
+
+            if (_recording)
+            {
+                if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
+                {
+                    _sequence.record(editingNode, _animation, _currentFrame);
                 }
             }
         }

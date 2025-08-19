@@ -127,6 +127,11 @@ namespace CCImEditor
 
                     PropertyImDrawerType::serialize(_customValue[key], v);
                     std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
+                    
+                    if (_animation)
+                    {
+                        PropertyImDrawerType::serialize(_animations[*_animation][key][_frame], v);
+                    }
                 }
                 else
                 {
@@ -243,12 +248,12 @@ namespace CCImEditor
         std::function<void()> _undo;
         ImGuiID _activeID = 0;
         cocos2d::RefPtr<cocos2d::Ref> _owner;
-
+public:
         // animations
         const std::string* _animation;
         int _frame;
 
-    public:
+    
         std::unordered_map<std::string, std::unordered_map<std::string, std::map<int, cocos2d::Value>>> _animations;
     };
 
