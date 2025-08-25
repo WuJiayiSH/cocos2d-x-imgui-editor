@@ -72,7 +72,7 @@ namespace CCImEditor
 
     void ImPropertyGroup::play(const std::string& animation, int frame)
     {
-        CC_ASSERT(_animation == nullptr);
+//        CC_ASSERT(_animation == nullptr);
         _animation = &animation;
         _frame = frame;
 
@@ -81,7 +81,7 @@ namespace CCImEditor
         draw();
         _context = ctx;
 
-        _animation = nullptr;
+        //_animation = nullptr;
     }
 
     bool ImPropertyGroup::init()
@@ -164,6 +164,9 @@ namespace CCImEditor
 
     void NodeImDrawer::update(float dt)
     {
+        if (_animation.empty())
+            return;
+
         _elapsed += dt;
         const int frame = static_cast<int>(_elapsed * _sample);
 

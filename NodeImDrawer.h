@@ -11,6 +11,11 @@ namespace CCImEditor
 {
     namespace Internal
     {
+        namespace Animation
+        {
+            struct Sequence;
+        }
+
         struct DefaultArgumentTag {};
 
         struct DefaultGetterBase{};
@@ -38,6 +43,7 @@ namespace CCImEditor
 
         friend class NodeFactory;
         friend class ComponentFactory;
+        friend struct Internal::Animation::Sequence;
         virtual void draw() {};
         void serialize(cocos2d::ValueMap&);
         void deserialize(const cocos2d::ValueMap&);
@@ -125,7 +131,10 @@ namespace CCImEditor
                         CC_ASSERT(_activeID == ImGui::GetItemID());
                     }
 
-                    PropertyImDrawerType::serialize(_customValue[key], v);
+                    if (_animation)
+                        PropertyImDrawerType::serialize(_animations[*_animation][key][_frame], v);
+                    else
+                        PropertyImDrawerType::serialize(_customValue[key], v);
                     std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
                 }
                 else
