@@ -28,7 +28,16 @@ namespace CCImEditor
         struct HasLerp<T, U, std::void_t<
             decltype(T::lerp(std::declval<U>(), std::declval<U>(), std::declval<float>()))
         >> : std::true_type {};
+
+        void performRecursively(cocos2d::Node *node, std::function<void(cocos2d::Node*)> func);
     }
+
+    enum class AnimationState
+    {
+        Unset,
+        Playing,
+        Recording,
+    };
 
     class ImPropertyGroup : public cocos2d::Ref
     {
@@ -44,11 +53,12 @@ namespace CCImEditor
         friend class NodeFactory;
         friend class ComponentFactory;
         friend struct Internal::Animation::Sequence;
+        friend class NodeImDrawer;
         virtual void draw() {};
         void serialize(cocos2d::ValueMap&);
         void deserialize(const cocos2d::ValueMap&);
         void deserializeAnimations(const cocos2d::ValueMap&);
-        void play(const std::string& animation, int frame);
+        void play();
         const std::string& getTypeName() const {return _typeName;}
         const std::string& getShortName() const {return _shortName;}
         virtual bool init();
@@ -131,8 +141,8 @@ namespace CCImEditor
                         CC_ASSERT(_activeID == ImGui::GetItemID());
                     }
 
-                    if (_animation)
-                        PropertyImDrawerType::serialize(_animations[*_animation][key][_frame], v);
+                    if (_drawer->getAnimationState() == AnimationState::Recording)
+                        PropertyImDrawerType::serialize(_animations[drawer->_animation][key][drawer->_frame], v);
                     else
                         PropertyImDrawerType::serialize(_customValue[key], v);
                     std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
@@ -155,7 +165,7 @@ namespace CCImEditor
             {
                 do
                 {
-                    auto animation = _animations.find(*_animation);
+                    auto animation = _animations.find(drawer->_animation);
                     if (animation == _animations.end())
                         break;
 
@@ -163,7 +173,7 @@ namespace CCImEditor
                     if (property == animation->second.end())
                         break;
 
-                    auto it1 = property->second.upper_bound(_frame);
+                    auto it1 = property->second.upper_bound(drawer->_frame);
                     auto it0 = std::prev(it1);
                     if (it1 != property->second.end() && it0 != property->second.end())
                     {
@@ -174,7 +184,7 @@ namespace CCImEditor
                             if (PropertyImDrawerType::deserialize(it0->second, v0) &&
                                 PropertyImDrawerType::deserialize(it1->second, v1))
                             {
-                                float offset = (float)(_frame - it0->first) / (it1->first - it0->first);
+                                float offset = (float)(drawer->_frame - it0->first) / (it1->first - it0->first);
                                 PropertyType v = PropertyImDrawerType::lerp(v0, v1, offset);
                                 std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
                             }
@@ -251,11 +261,9 @@ namespace CCImEditor
         cocos2d::ValueMap* _contextValue = nullptr;
         std::function<void()> _undo;
         ImGuiID _activeID = 0;
-        cocos2d::RefPtr<cocos2d::Ref> _owner;
+        cocos2d::WeakPtr<cocos2d::Ref> _owner;
+        cocos2d::WeakPtr<NodeImDrawer> _drawer;
 
-        // animations
-        const std::string* _animation;
-        int _frame;
         std::unordered_map<std::string, std::unordered_map<std::string, std::map<int, cocos2d::Value>>> _animations;
     };
 
@@ -291,6 +299,9 @@ namespace CCImEditor
         void serialize(cocos2d::ValueMap& target){_nodePropertyGroup->serialize(target);}
         void deserialize(const cocos2d::ValueMap& source){_nodePropertyGroup->deserialize(source);}
         void play(const std::string& animation);
+        void stop();
+        void record(const std::string& animation, int frame);
+        void rewind(AnimationState animationState, const std::string& animation, int frame);
 
         const std::string& getTypeName() const {return _nodePropertyGroup->getTypeName();}
         const std::string& getShortName() const {return _nodePropertyGroup->getShortName();}
@@ -309,11 +320,14 @@ namespace CCImEditor
         bool canBeRoot() const;
 
         void update(float dt) override;
+        AnimationState getAnimationState() const {return _animationState;}
 
     private:
         std::string _animation;
+        int _frame;
         float _elapsed;
         uint16_t _sample = 30;
+        AnimationState _animationState = AnimationState::Unset;
 
         uint32_t getMask() const;
         cocos2d::RefPtr<ImPropertyGroup> _nodePropertyGroup;

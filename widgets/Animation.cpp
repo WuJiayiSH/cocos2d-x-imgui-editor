@@ -49,17 +49,6 @@ namespace CCImEditor
                 }
             }
 
-            void Sequence::record(ImPropertyGroup* group, std::string* animation, int frame)
-            {
-                group->_animation = animation;
-                group->_frame = frame;
-            }
-
-            void Sequence::play(ImPropertyGroup* group, const std::string &animation, int frame)
-            {
-                group->play(animation, frame);
-            }
-
             void Sequence::CustomDrawCompact(int index, ImDrawList *draw_list, const ImRect &rc, const ImRect &clippingRect)
             {
                 draw_list->PushClipRect(clippingRect.Min, clippingRect.Max, true);
@@ -155,8 +144,10 @@ namespace CCImEditor
         {
             _sequence._itemExists.clear();
             _sequence._items.clear();
+            AnimationState state = AnimationState::Unset;
             if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
             {
+                state = editingNode->getComponent<NodeImDrawer>()->getAnimationState();
                 _sequence.performRecursively(editingNode, std::bind(&Internal::Animation::Sequence::update, &_sequence, std::placeholders::_1, _animation));
             }
 
@@ -210,13 +201,21 @@ namespace CCImEditor
             }
 
             ImGui::SameLine(0.0f, 0.0f);
-            if (_state != State::Playing && Internal::Animation::Button("Play"))
+            if (state != AnimationState::Playing && Internal::Animation::Button("Play"))
             {
-                _state = State::Playing;
+                state = AnimationState::Playing;
+                if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
+                {
+                    editingNode->getComponent<NodeImDrawer>()->play(_animation);
+                }
             }
-            else if (_state == State::Playing && Internal::Animation::Button("Stop"))
+            else if (state == AnimationState::Playing && Internal::Animation::Button("Stop"))
             {
-                _state = State::Idle;
+                state = AnimationState::Unset;
+                if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
+                {
+                    editingNode->getComponent<NodeImDrawer>()->stop();
+                }
             }
 
             ImGui::SameLine(0.0f, 0.0f);
@@ -232,10 +231,10 @@ namespace CCImEditor
             }
 
             ImGui::SameLine();
-            bool recording = _state == State::Recording;
+            bool recording = state == AnimationState::Recording;
             if (ImGui::RadioButton("Rec", recording))
             {
-                _state = recording ? State::Recording : State::Idle;
+                state = recording ? AnimationState::Recording : AnimationState::Unset;
             }
 
             ImGui::SameLine();
@@ -250,7 +249,7 @@ namespace CCImEditor
                 _samples = (uint16_t)samples;
             }
 
-            if (_state == State::Playing)
+            if (state == AnimationState::Playing)
             {
                 float frameRate = cocos2d::Director::getInstance()->getFrameRate();
                 float _elapsedFrames = 1.0f / frameRate * _samples;
@@ -281,14 +280,7 @@ namespace CCImEditor
 
             if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
             {
-                if (_state == State::Recording)
-                {
-                    _sequence.performRecursively(editingNode, std::bind(&Internal::Animation::Sequence::record, &_sequence, std::placeholders::_1, &_animation, currentFrame));
-                }
-                else
-                {
-                    _sequence.performRecursively(editingNode, std::bind(&Internal::Animation::Sequence::play, &_sequence, std::placeholders::_1, _animation, currentFrame));
-                }
+                editingNode->getComponent<NodeImDrawer>()->rewind(state, _animation, currentFrame);
             }
         }
 

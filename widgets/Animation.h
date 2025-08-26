@@ -34,8 +34,6 @@ namespace CCImEditor
 
                 void performRecursively(cocos2d::Node *node, std::function<void(ImPropertyGroup*)> func);
                 void update(ImPropertyGroup* group, const std::string& animation);
-                void record(ImPropertyGroup* group, std::string* animation, int frame);
-                void play(ImPropertyGroup* group, const std::string& animation, int frame);
 
                 int GetFrameMin() const
                 {
@@ -89,14 +87,6 @@ namespace CCImEditor
         void draw(bool* open) override;
 
         std::string _animation;
-
-        enum class State
-        {
-            Idle,
-            Playing,
-            Recording,
-        };
-        State _state = State::Idle;
 
         enum class WrapMode
         {

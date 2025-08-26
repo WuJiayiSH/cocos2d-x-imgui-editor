@@ -3,6 +3,19 @@
 
 namespace CCImEditor
 {
+    namespace Internal
+    {
+        void performRecursively(cocos2d::Node *node, std::function<void(cocos2d::Node*)> func)
+        {
+            func(node);
+
+            for (auto child : node->getChildren())
+            {
+                performRecursively(child, func);
+            }
+        }
+    }
+
     void ImPropertyGroup::serialize(cocos2d::ValueMap& target)
     {
         Context ctx = _context;
@@ -70,18 +83,12 @@ namespace CCImEditor
         }
     }
 
-    void ImPropertyGroup::play(const std::string& animation, int frame)
+    void ImPropertyGroup::play()
     {
-//        CC_ASSERT(_animation == nullptr);
-        _animation = &animation;
-        _frame = frame;
-
         Context ctx = _context;
         _context = Context::PLAY;
         draw();
         _context = ctx;
-
-        //_animation = nullptr;
     }
 
     bool ImPropertyGroup::init()
@@ -158,24 +165,75 @@ namespace CCImEditor
 
     void NodeImDrawer::play(const std::string& animation)
     {
-        _animation = animation;
-        _elapsed = 0.0f;
+        Internal::performRecursively(getOwner(), [&animation](cocos2d::Node* node){
+            if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
+            {
+                drawer->_animation = animation;
+                drawer->_elapsed = 0.0f;
+                drawer->_animationState = AnimationState::Playing;
+            }
+        });
+    }
+
+    void NodeImDrawer::stop()
+    {
+        Internal::performRecursively(getOwner(), [&animation](cocos2d::Node* node){
+            if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
+            {
+                drawer->_animationState = AnimationState::Unset;
+            }
+        });
+    }
+
+    void NodeImDrawer::record(const std::string& animation, int frame)
+    {
+        Internal::performRecursively(getOwner(), [&](cocos2d::Node* node){
+            if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
+            {
+                drawer->_animation = animation;
+                drawer->_frame = frame;
+                drawer->_animationState = AnimationState::Recording;
+            }
+        });
+    }
+
+    void NodeImDrawer::rewind(AnimationState animationState, const std::string& animation, int frame)
+    {
+        Internal::performRecursively(getOwner(), [&](cocos2d::Node* node){
+            if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
+            {
+                drawer->_animation = animation;
+                drawer->_frame = frame;
+                drawer->_animationState = animationState;
+
+                ImPropertyGroup *group = drawer->getNodePropertyGroup();
+                group->play();
+
+                for (const auto &[_, group] : drawer->getComponentPropertyGroups())
+                {
+                    group->play();
+                }
+            }
+        });
     }
 
     void NodeImDrawer::update(float dt)
     {
-        if (_animation.empty())
+        if (_animationState != AnimationState::Playing)
+            return;
+
+        if (Editor::isInstancePresent())
             return;
 
         _elapsed += dt;
-        const int frame = static_cast<int>(_elapsed * _sample);
+        _frame = static_cast<int>(_elapsed * _sample);
 
-        _nodePropertyGroup->play(_animation, frame);
+        _nodePropertyGroup->play();
         for (const auto &[_, componentPropertyGroup] : _componentPropertyGroups)
         {
             if (componentPropertyGroup.get())
             {
-                componentPropertyGroup->play(_animation, frame);
+                componentPropertyGroup->play();
             }
         }
     }
