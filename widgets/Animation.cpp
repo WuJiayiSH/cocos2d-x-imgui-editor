@@ -15,40 +15,6 @@ namespace CCImEditor
     {
         namespace Animation
         {
-            void Sequence::performRecursively(cocos2d::Node *node, std::function<void(ImPropertyGroup*)> func)
-            {
-                if (NodeImDrawer *drawer = node->getComponent<NodeImDrawer>())
-                {
-                    ImPropertyGroup *group = drawer->getNodePropertyGroup();
-                    func(group);
-
-                    for (const auto &[_, group] : drawer->getComponentPropertyGroups())
-                    {
-                        func(group);
-                    }
-                }
-
-                for (auto child : node->getChildren())
-                {
-                    performRecursively(child, func);
-                }
-            }
-
-            void Sequence::update(ImPropertyGroup* group, const std::string &animation)
-            {
-                for (const auto &[animationName, properties] : group->_animations)
-                {
-                    _itemExists[animationName] = true;
-                    if (animationName == animation)
-                    {
-                        for (const auto &[propertyName, propertyValues] : properties)
-                        {
-                            _items.push_back(Item(propertyName, propertyValues));
-                        }
-                    }
-                }
-            }
-
             void Sequence::CustomDrawCompact(int index, ImDrawList *draw_list, const ImRect &rc, const ImRect &clippingRect)
             {
                 draw_list->PushClipRect(clippingRect.Min, clippingRect.Max, true);
@@ -139,149 +105,125 @@ namespace CCImEditor
 
     void Animation::draw(bool *open)
     {
-        ImGui::SetNextWindowSize(ImVec2(400, 250), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin(getWindowName().c_str(), open))
-        {
-            _sequence._itemExists.clear();
-            _sequence._items.clear();
-            AnimationState state = AnimationState::Unset;
-            if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
-            {
-                state = editingNode->getComponent<NodeImDrawer>()->getAnimationState();
-                _sequence.performRecursively(editingNode, std::bind(&Internal::Animation::Sequence::update, &_sequence, std::placeholders::_1, _animation));
-            }
+        cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode();
 
-            ImGui::SetNextItemWidth(200.0f);
-            if (_animation.empty())
+        ImGui::SetNextWindowSize(ImVec2(400, 250), ImGuiCond_FirstUseEver);
+        if (ImGui::Begin(getWindowName().c_str(), open) && editingNode)
+        {
+            NodeImDrawer* drawer = editingNode->getComponent<NodeImDrawer>();
+
+            std::unordered_map<std::string, bool> animationExists = drawer->getAnimationNames();
+
+            std::string animation = drawer->_animationName;
+            if (animation.empty())
             {
-                for (const auto &[name, exists] : _sequence._itemExists)
+                for (const auto &[name, exists] : animationExists)
                 {
                     if (exists)
                     {
-                        _animation = name;
+                        animation = name;
                         break;
                     }
                 }
             }
 
-            if (_animation.empty())
-                _animation = "unnamed";
+            if (animation.empty())
+                animation = "unnamed";
 
-            if (ImGui::BeginCombo("###Animations", _animation.c_str()))
+            if (ImGui::BeginCombo("###Animations", animation.c_str()))
             {
-                for (const auto &[name, exists] : _sequence._itemExists)
+                for (const auto &[name, exists] : animationExists)
                 {
-                    if (exists && ImGui::Selectable(name.c_str(), name == _animation))
+                    if (exists && ImGui::Selectable(name.c_str(), name == animation))
                     {
-                        _animation = name;
+                        animation = name;
                     }
                 }
 
                 ImGui::Separator();
                 if (ImGui::Selectable("New Animation", false))
                 {
-                    _animation = "unnamed";
+                    animation = "unnamed";
                     int count = 1;
-                    while (_sequence._itemExists[_animation])
-                        _animation = cocos2d::StringUtils::format("unnamed (%d)", count++);
+                    while (animationExists[animation])
+                        animation = cocos2d::StringUtils::format("unnamed (%d)", count++);
                 }
                 ImGui::EndCombo();
             }
 
+            auto items = drawer->getAnimationSequenceItems(animation);
+            int currentFrame = drawer->_currentFrame;
+            int maxFrame = 0;
+            for (const auto &item : items)
+            {
+                int end = std::prev(item._values.end())->first;
+                if (end > maxFrame)
+                    maxFrame = end;
+            }
+
+            const int minFrame = 0;
+            auto state = drawer->_animationState;
+            auto wrapMode = drawer->_animationWrapMode;
+            int sample = drawer->_sample;
+
+            ImGui::SetNextItemWidth(200.0f);
             ImGui::SameLine();
             if (Internal::Animation::Button("FirstF"))
             {
-                _currentFrame = static_cast<float>(_sequence.GetFrameMin());
+                currentFrame = minFrame;
+                state = State::Unset;
             }
 
             ImGui::SameLine(0.0f, 0.0f);
             if (Internal::Animation::Button("PrevF"))
             {
-                _currentFrame--;
+                currentFrame--;
+                state = State::Unset;
             }
 
             ImGui::SameLine(0.0f, 0.0f);
-            if (state != AnimationState::Playing && Internal::Animation::Button("Play"))
+            if (state != State::Playing && Internal::Animation::Button("Play"))
             {
-                state = AnimationState::Playing;
-                if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
-                {
-                    editingNode->getComponent<NodeImDrawer>()->play(_animation);
-                }
+                state = State::Playing;
             }
-            else if (state == AnimationState::Playing && Internal::Animation::Button("Stop"))
+            else if (state == State::Playing && Internal::Animation::Button("Stop"))
             {
-                state = AnimationState::Unset;
-                if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
-                {
-                    editingNode->getComponent<NodeImDrawer>()->stop();
-                }
+                state = State::Unset;
             }
 
             ImGui::SameLine(0.0f, 0.0f);
             if (Internal::Animation::Button("NextF"))
             {
-                _currentFrame++;
+                currentFrame++;
+                state = State::Unset;
             }
 
             ImGui::SameLine(0.0f, 0.0f);
             if (Internal::Animation::Button("LastF"))
             {
-                _currentFrame = static_cast<float>(_sequence.GetFrameMax());
+                currentFrame = maxFrame;
+                state = State::Unset;
             }
 
             ImGui::SameLine();
-            bool recording = state == AnimationState::Recording;
+            bool recording = state == State::Recording;
             if (ImGui::RadioButton("Rec", recording))
             {
-                state = recording ? AnimationState::Recording : AnimationState::Unset;
+                state = recording ? State::Recording : State::Unset;
             }
 
             ImGui::SameLine();
             ImGui::SetNextItemWidth(100.0f);
-            PropertyImDrawer<WrapMode>::draw("###WrapMode", _wrapMode);
+            PropertyImDrawer<AnimationWrapMode>::draw("###WrapMode", wrapMode);
             ImGui::SameLine();
             
             ImGui::SetNextItemWidth(100.0f);
-            int samples = _samples;
-            if (ImGui::InputInt("Samples", &samples))
-            {
-                _samples = (uint16_t)samples;
-            }
+            ImGui::InputInt("Samples", &sample);
 
-            if (state == AnimationState::Playing)
-            {
-                float frameRate = cocos2d::Director::getInstance()->getFrameRate();
-                float _elapsedFrames = 1.0f / frameRate * _samples;
-                if (_wrapMode == WrapMode::Reverse || _wrapMode == WrapMode::ReverseLoop)
-                    _currentFrame -= _elapsedFrames;
-                else
-                    _currentFrame += _elapsedFrames;
-            }
-
-            if (_currentFrame < 0)
-            {
-                if (_wrapMode == WrapMode::Reverse)
-                    _currentFrame = 0;
-                else
-                    _currentFrame += _sequence.GetFrameMax();
-            }
-            else if (_currentFrame > _sequence.GetFrameMax())
-            {
-                if (_wrapMode == WrapMode::Loop)
-                    _currentFrame -= _sequence.GetFrameMax();
-                else
-                    _currentFrame = static_cast<float>(_sequence.GetFrameMax());
-            }
-
-            int currentFrame = static_cast<int>(_currentFrame);
+            _sequence._items == std::move(items);
+            _sequence._frameMax = maxFrame;
             ImSequencer::Sequencer(&_sequence, &currentFrame, &_expanded, &_selectedEntry, &_firstFrame, ImSequencer::SEQUENCER_EDIT_ALL);
-            _currentFrame = _currentFrame + (currentFrame - static_cast<int>(_currentFrame));
-
-            if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
-            {
-                editingNode->getComponent<NodeImDrawer>()->rewind(state, _animation, currentFrame);
-            }
+            drawer->applyAnimationRecursively(state, animation, currentFrame, wrapMode, (uint16_t)(sample));
         }
 
         ImGui::End();

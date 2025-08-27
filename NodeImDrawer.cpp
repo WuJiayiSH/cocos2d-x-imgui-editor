@@ -165,46 +165,24 @@ namespace CCImEditor
 
     void NodeImDrawer::play(const std::string& animation)
     {
-        Internal::performRecursively(getOwner(), [&animation](cocos2d::Node* node){
-            if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
-            {
-                drawer->_animation = animation;
-                drawer->_elapsed = 0.0f;
-                drawer->_animationState = AnimationState::Playing;
-            }
-        });
+        applyAnimationRecursively(Internal::Animation::State::Playing, animation, 0, _animationWrapMode, _sample);
     }
 
     void NodeImDrawer::stop()
     {
-        Internal::performRecursively(getOwner(), [&animation](cocos2d::Node* node){
-            if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
-            {
-                drawer->_animationState = AnimationState::Unset;
-            }
-        });
+        applyAnimationRecursively(Internal::Animation::State::Unset, _animationName, _currentFrame, _animationWrapMode, _sample);
     }
 
-    void NodeImDrawer::record(const std::string& animation, int frame)
+    void NodeImDrawer::applyAnimationRecursively(Internal::Animation::State state, const std::string& animation, int frame, CCImEditor::AnimationWrapMode wrapMode, uint16_t sample)
     {
         Internal::performRecursively(getOwner(), [&](cocos2d::Node* node){
             if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
             {
-                drawer->_animation = animation;
-                drawer->_frame = frame;
-                drawer->_animationState = AnimationState::Recording;
-            }
-        });
-    }
-
-    void NodeImDrawer::rewind(AnimationState animationState, const std::string& animation, int frame)
-    {
-        Internal::performRecursively(getOwner(), [&](cocos2d::Node* node){
-            if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
-            {
-                drawer->_animation = animation;
-                drawer->_frame = frame;
-                drawer->_animationState = animationState;
+                drawer->_animationState = state;
+                drawer->_animationName = animation;
+                drawer->_currentFrame = frame;
+                drawer->_animationWrapMode = wrapMode;
+                drawer->_sample = sample;
 
                 ImPropertyGroup *group = drawer->getNodePropertyGroup();
                 group->play();
@@ -217,24 +195,88 @@ namespace CCImEditor
         });
     }
 
+    std::vector<Internal::Animation::SequenceItem> NodeImDrawer::getAnimationSequenceItems(const std::string& animation) const
+    {
+        std::vector<Internal::Animation::SequenceItem> items;
+
+        Internal::performRecursively(getOwner(), [&](cocos2d::Node* node){
+            if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
+            {
+                ImPropertyGroup *group = drawer->getNodePropertyGroup();
+                for (const auto &[animationName, properties] : group->_animations)
+                {
+                    if (animationName == animation)
+                    {
+                        for (const auto &[propertyName, propertyValues] : properties)
+                        {
+                            items.push_back({node, nullptr, propertyName, propertyValues});
+                        }
+                    }
+                }
+         
+                for (const auto &[componentName, group] : drawer->getComponentPropertyGroups())
+                {
+                     for (const auto &[animationName, properties] : group->_animations)
+                    {
+                        if (animationName == animation)
+                        {
+                            for (const auto &[propertyName, propertyValues] : properties)
+                            {
+                                items.push_back({node, node->getComponent(componentName), propertyName, propertyValues});
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        return items;
+    }
+
+    std::unordered_map<std::string, bool> NodeImDrawer::getAnimationNames() const
+    {
+        std::unordered_map<std::string, bool> animationExists;
+
+        Internal::performRecursively(getOwner(), [&](cocos2d::Node* node){
+            if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
+            {
+                ImPropertyGroup *group = drawer->getNodePropertyGroup();
+                for (const auto &[animationName, properties] : group->_animations)
+                {
+                    animationExists[animationName] = true;
+                }
+
+                for (const auto &[componentName, group] : drawer->getComponentPropertyGroups())
+                {
+                     for (const auto &[animationName, properties] : group->_animations)
+                    {
+                        animationExists[animationName] = true;
+                    }
+                }
+            }
+        });
+
+        return animationExists;
+    }
+
     void NodeImDrawer::update(float dt)
     {
-        if (_animationState != AnimationState::Playing)
-            return;
+        // if (_animationState != AnimationState::Playing)
+        //     return;
 
-        if (Editor::isInstancePresent())
-            return;
+        // if (Editor::isInstancePresent())
+        //     return;
 
-        _elapsed += dt;
-        _frame = static_cast<int>(_elapsed * _sample);
+        // _elapsed += dt;
+        // _frame = static_cast<int>(_elapsed * _sample);
 
-        _nodePropertyGroup->play();
-        for (const auto &[_, componentPropertyGroup] : _componentPropertyGroups)
-        {
-            if (componentPropertyGroup.get())
-            {
-                componentPropertyGroup->play();
-            }
-        }
+        // _nodePropertyGroup->play();
+        // for (const auto &[_, componentPropertyGroup] : _componentPropertyGroups)
+        // {
+        //     if (componentPropertyGroup.get())
+        //     {
+        //         componentPropertyGroup->play();
+        //     }
+        // }
     }
 }

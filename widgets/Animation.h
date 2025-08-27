@@ -14,26 +14,8 @@ namespace CCImEditor
         {
             struct Sequence : public ImSequencer::SequenceInterface
             {
-                struct Item
-                {
-                    Item(std::string name, const std::map<int, cocos2d::Value> &values)
-                        : _name(name), _values(values)
-                    {
-                        _frameStart = _values.begin()->first;
-                        _frameEnd = std::prev(_values.end())->first;
-                    }
-
-                    std::string _name;
-                    const std::map<int, cocos2d::Value> &_values;
-                    int _frameStart;
-                    int _frameEnd;
-                };
-
-                std::vector<Item> _items;
-                std::unordered_map<std::string, bool> _itemExists;
-
-                void performRecursively(cocos2d::Node *node, std::function<void(ImPropertyGroup*)> func);
-                void update(ImPropertyGroup* group, const std::string& animation);
+                std::vector<SequenceItem> _items;
+                int _frameMax;
 
                 int GetFrameMin() const
                 {
@@ -42,13 +24,8 @@ namespace CCImEditor
 
                 int GetFrameMax() const
                 {
-                    int frameMax = 0;
-                    for (const Item &item : _items)
-                        if (item._frameEnd > frameMax)
-                            frameMax = item._frameEnd;
-                    return frameMax;
+                    return _frameMax;
                 }
-
 
                 int GetItemCount() const override
                 {
@@ -57,7 +34,7 @@ namespace CCImEditor
 
                 const char *GetItemLabel(int i) const override
                 {
-                    return _items[i]._name.c_str();
+                    return _items[i]._label.c_str();
                 }
 
                 void Get(int index, int **start, int **end, int *type, unsigned int *color) override
@@ -86,21 +63,8 @@ namespace CCImEditor
     private:
         void draw(bool* open) override;
 
-        std::string _animation;
-
-        enum class WrapMode
-        {
-            Normal,
-            Loop,
-            Reverse,
-            ReverseLoop,
-        };
-        WrapMode _wrapMode = WrapMode::Loop;
-        uint16_t _samples = 30;
-
         // Sequence and arguments
         Internal::Animation::Sequence _sequence;
-        float _currentFrame = 0.0f;
         bool _expanded = true;
         int _selectedEntry = -1;
         int _firstFrame = 0;
