@@ -12,6 +12,7 @@
 #include "widgets/Viewport.h"
 #include "widgets/Assets.h"
 #include "widgets/Console.h"
+#include "widgets/Animation.h"
 #include "nodes/Node3D.h"
 #include "nodes/Sprite3D.h"
 #include "nodes/Node2D.h"
@@ -538,6 +539,7 @@ namespace CCImEditor
         WidgetFactory::getInstance()->registerWidget<NodeProperties>("CCImEditor.NodeProperties", "Node Properties");
         WidgetFactory::getInstance()->registerWidget<ImGuiDemo>("CCImEditor.ImGuiDemo", "ImGui Demo", WidgetFlags_DisallowMultiple);
         WidgetFactory::getInstance()->registerWidget<Console>("CCImEditor.Console", "Console", WidgetFlags_DisallowMultiple);
+        WidgetFactory::getInstance()->registerWidget<Animation>("CCImEditor.Animation", "Animation", WidgetFlags_DisallowMultiple);
     }
 
     void Editor::registerNodes()

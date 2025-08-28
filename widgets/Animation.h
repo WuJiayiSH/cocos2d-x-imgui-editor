@@ -39,7 +39,7 @@ namespace CCImEditor
 
                 void Get(int index, int **start, int **end, int *type, unsigned int *color) override
                 {
-                    Item &item = _items[index];
+                    auto &item = _items[index];
                     if (start)
                         *start = &item._frameStart;
 

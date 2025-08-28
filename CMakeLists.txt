@@ -43,12 +43,14 @@ file(GLOB_RECURSE SOURCE
     ${CMAKE_CURRENT_LIST_DIR}/widgets/Viewport.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/Assets.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/Console.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/widgets/Animation.cpp
     ${CMAKE_CURRENT_LIST_DIR}/FileDialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/CommandHistory.cpp
     ${CMAKE_CURRENT_LIST_DIR}/commands/AddNode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/commands/RemoveNode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/commands/CustomCommand.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ImGuizmo.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ImSequencer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ComponentFactory.cpp
     ${CMAKE_CURRENT_LIST_DIR}/components/Component.cpp
     ${CMAKE_CURRENT_LIST_DIR}/commands/AddComponent.cpp
@@ -78,6 +80,7 @@ file(GLOB_RECURSE HEADER
     ${CMAKE_CURRENT_LIST_DIR}/widgets/Viewport.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/Assets.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/Console.h
+    ${CMAKE_CURRENT_LIST_DIR}/widgets/Animation.h
     ${CMAKE_CURRENT_LIST_DIR}/FileDialog.h
     ${CMAKE_CURRENT_LIST_DIR}/Command.h
     ${CMAKE_CURRENT_LIST_DIR}/CommandHistory.h
