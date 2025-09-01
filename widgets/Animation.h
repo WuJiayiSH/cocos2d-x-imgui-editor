@@ -53,7 +53,7 @@ namespace CCImEditor
                         *color = 0xFFAA8080;
                 }
 
-                void CustomDrawCompact(int index, ImDrawList* draw_list, const ImRect& rc, const ImRect& clippingRect) override;
+                void CustomDrawCompact(int index, ImDrawList* drawList, const ImRect& rc, const ImRect& clippingRect) override;
             };
         }
     }

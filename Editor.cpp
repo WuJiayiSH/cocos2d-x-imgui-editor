@@ -107,7 +107,6 @@ namespace CCImEditor
             return false;
         }
 
-
         bool serializeNode(cocos2d::Node* node, cocos2d::ValueMap& target)
         {
             if (!node)

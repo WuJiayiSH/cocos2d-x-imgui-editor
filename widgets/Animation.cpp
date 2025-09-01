@@ -15,17 +15,17 @@ namespace CCImEditor
     {
         namespace Animation
         {
-            void Sequence::CustomDrawCompact(int index, ImDrawList *draw_list, const ImRect &rc, const ImRect &clippingRect)
+            void Sequence::CustomDrawCompact(int index, ImDrawList *drawList, const ImRect &rc, const ImRect &clippingRect)
             {
-                draw_list->PushClipRect(clippingRect.Min, clippingRect.Max, true);
+                drawList->PushClipRect(clippingRect.Min, clippingRect.Max, true);
                 const auto &item = _items[index];
                 for (const auto &[i, value] : item._values)
                 {
-                    float r = (i - item._frameStart) / float(item._frameEnd - item._frameStart);
+                    float r = i / (float)(1 + _frameMax);
                     float x = ImLerp(rc.Min.x, rc.Max.x, r);
-                    draw_list->AddLine(ImVec2(x, rc.Min.y + 6), ImVec2(x, rc.Max.y - 4), 0xAA000000, 4.f);
+                    drawList->AddLine(ImVec2(x, rc.Min.y + 6), ImVec2(x, rc.Max.y - 4), 0xAA000000, 4.f);
                 }
-                draw_list->PopClipRect();
+                drawList->PopClipRect();
             }
 
             bool Button(const char *str_id)
@@ -155,93 +155,90 @@ namespace CCImEditor
                     animation = "unnamed";
             }
 
-            if (!animation.empty())
+            if (animation.empty())
+            {
+                drawer->_animationName.clear();
+            }
+            else
             {
                 auto items = drawer->getAnimationSequenceItems(animation);
                 int currentFrame = drawer->_currentFrame;
                 int maxFrame = 0;
-                for (const auto &item : items)
-                {
-                    int end = std::prev(item._values.end())->first;
-                    if (end > maxFrame)
-                        maxFrame = end;
-                }
-                if (maxFrame == 0)
-                {
-                    maxFrame = drawer->_sample;
-                }
 
                 const int minFrame = 0;
-                auto state = drawer->_animationState;
+                bool isPlaying = drawer->_isPlayingAnimation;
                 auto wrapMode = drawer->_animationWrapMode;
-                int sample = drawer->_sample;
-                using State = Internal::Animation::State;
-                ImGui::SetNextItemWidth(200.0f);
-                ImGui::SameLine();
-                if (Internal::Animation::Button("FirstF"))
+                int samples = 0;
+
+                if (items.size() > 0)
                 {
-                    currentFrame = minFrame;
-                    if (state == State::Playing)
-                        state = State::Unset;
+                    maxFrame = items[0]._frameMax;
+                    samples = items[0]._samples;
+
+                    ImGui::SetNextItemWidth(200.0f);
+                    ImGui::SameLine();
+                    if (Internal::Animation::Button("FirstF"))
+                    {
+                        currentFrame = minFrame;
+                        isPlaying = false;
+                    }
+
+                    ImGui::SameLine(0.0f, 0.0f);
+                    if (Internal::Animation::Button("PrevF"))
+                    {
+                        currentFrame--;
+                        isPlaying = false;
+                    }
+
+                    ImGui::SameLine(0.0f, 0.0f);
+                    if (!isPlaying && Internal::Animation::Button("Play"))
+                    {
+                        isPlaying = true;
+                    }
+                    else if (isPlaying && Internal::Animation::Button("Stop"))
+                    {
+                        isPlaying = false;
+                    }
+
+                    ImGui::SameLine(0.0f, 0.0f);
+                    if (Internal::Animation::Button("NextF"))
+                    {
+                        currentFrame++;
+                        isPlaying = false;
+                    }
+
+                    ImGui::SameLine(0.0f, 0.0f);
+                    if (Internal::Animation::Button("LastF"))
+                    {
+                        currentFrame = maxFrame;
+                        isPlaying = false;
+                    }
+
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(100.0f);
+                    PropertyImDrawer<AnimationWrapMode>::draw("Wrap Mode", wrapMode);
+
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(100.0f);
+                    if (ImGui::DragInt("Samples", &samples))
+                    {
+                        if (samples < 1)
+                            samples = 1;
+                    }
+
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(100.0f);
+                    if (ImGui::DragInt("Duration(Frame)", &maxFrame))
+                    {
+                        if (maxFrame < 1)
+                            maxFrame = 1;
+                    }
+
+                    _sequence._items = std::move(items);
+                    _sequence._frameMax = maxFrame;
+                    ImSequencer::Sequencer(&_sequence, &currentFrame, &_expanded, &_selectedEntry, &_firstFrame, ImSequencer::SEQUENCER_EDIT_ALL);
                 }
-
-                ImGui::SameLine(0.0f, 0.0f);
-                if (Internal::Animation::Button("PrevF"))
-                {
-                    currentFrame--;
-                    if (state == State::Playing)
-                        state = State::Unset;
-                }
-
-                ImGui::SameLine(0.0f, 0.0f);
-                if (state != State::Playing && Internal::Animation::Button("Play"))
-                {
-                    state = State::Playing;
-                }
-                else if (state == State::Playing && Internal::Animation::Button("Stop"))
-                {
-                    state = State::Unset;
-                }
-
-                ImGui::SameLine(0.0f, 0.0f);
-                if (Internal::Animation::Button("NextF"))
-                {
-                    currentFrame++;
-                    if (state == State::Playing)
-                        state = State::Unset;
-                }
-
-                ImGui::SameLine(0.0f, 0.0f);
-                if (Internal::Animation::Button("LastF"))
-                {
-                    currentFrame = maxFrame;
-                    if (state == State::Playing)
-                        state = State::Unset;
-                }
-
-                ImGui::SameLine();
-                bool recording = state == State::Recording;
-                if (ImGui::RadioButton("Rec", recording))
-                {
-                    state = recording ? State::Unset : State::Recording;
-                }
-
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(100.0f);
-                PropertyImDrawer<AnimationWrapMode>::draw("###WrapMode", wrapMode);
-
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(100.0f);
-                ImGui::DragInt("Samples", &sample, 1.0f, 1, 100);
-
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(100.0f);
-                ImGui::DragInt("Duration(Frame)", &maxFrame, 1.0f, 1, 100);
-
-                _sequence._items = std::move(items);
-                _sequence._frameMax = maxFrame;
-                ImSequencer::Sequencer(&_sequence, &currentFrame, &_expanded, &_selectedEntry, &_firstFrame, ImSequencer::SEQUENCER_EDIT_ALL);
-                drawer->applyAnimationRecursively(state, animation, currentFrame, wrapMode, (uint16_t)(sample));
+                drawer->applyAnimationRecursively(isPlaying, animation, currentFrame, maxFrame, wrapMode, (uint16_t)(samples));
             }
         }
 

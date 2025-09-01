@@ -77,13 +77,13 @@ namespace CCImEditor
                         continue;
                     }
 
-                    _animations[animationName][propertyName][frameIt->second.asInt()] = valueIt->second;
+                    _animations[animationName]._values[propertyName][frameIt->second.asInt()] = valueIt->second;
                 }
             }
         }
     }
 
-    void ImPropertyGroup::play()
+    void ImPropertyGroup::sample()
     {
         Context ctx = _context;
         _context = Context::PLAY;
@@ -163,33 +163,33 @@ namespace CCImEditor
         return it->second.getMask();
     }
 
-    void NodeImDrawer::play(const std::string& animation)
+    void NodeImDrawer::play(const std::string& animation, AnimationWrapMode wrapMode)
     {
-        applyAnimationRecursively(Internal::Animation::State::Playing, animation, 0, _animationWrapMode, _sample);
+        const ImPropertyGroup::AnimationData& animationData = _nodePropertyGroup->_animations[_animationName];
+        applyAnimationRecursively(true, animation, 0, animationData._maxFrame, wrapMode, animationData._samples);
     }
 
     void NodeImDrawer::stop()
     {
-        applyAnimationRecursively(Internal::Animation::State::Unset, _animationName, _currentFrame, _animationWrapMode, _sample);
+        const ImPropertyGroup::AnimationData& animationData = _nodePropertyGroup->_animations[_animationName];
+        applyAnimationRecursively(false, _animationName, 0, animationData._maxFrame, _animationWrapMode, animationData._samples);
     }
 
-    void NodeImDrawer::applyAnimationRecursively(Internal::Animation::State state, const std::string& animation, int frame, CCImEditor::AnimationWrapMode wrapMode, uint16_t sample)
+    void NodeImDrawer::applyAnimationRecursively(bool isPlaying, const std::string& animation, int frame, int maxFrame, CCImEditor::AnimationWrapMode wrapMode, uint16_t sample)
     {
         Internal::performRecursively(getOwner(), [&](cocos2d::Node* node){
             if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
             {
-                drawer->_animationState = state;
+                drawer->_isPlayingAnimation = isPlaying;
                 drawer->_animationName = animation;
                 drawer->_currentFrame = frame;
                 drawer->_animationWrapMode = wrapMode;
-                drawer->_sample = sample;
 
-                ImPropertyGroup *group = drawer->getNodePropertyGroup();
-                group->play();
-
-                for (const auto &[_, group] : drawer->getComponentPropertyGroups())
+                auto it = drawer->_nodePropertyGroup->_animations.find(_animationName);
+                if (it != drawer->_nodePropertyGroup->_animations.end())
                 {
-                    group->play();
+                    it->second._samples = sample;
+                    it->second._maxFrame = maxFrame;
                 }
             }
         });
@@ -203,26 +203,26 @@ namespace CCImEditor
             if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
             {
                 ImPropertyGroup *group = drawer->getNodePropertyGroup();
-                for (const auto &[animationName, properties] : group->_animations)
+                for (const auto &[animationName, animationData] : group->_animations)
                 {
                     if (animationName == animation)
                     {
-                        for (const auto &[propertyName, propertyValues] : properties)
+                        for (const auto &[propertyName, propertyValues] : animationData._values)
                         {
-                            items.push_back({node, nullptr, propertyName, propertyValues});
+                            items.push_back({node, nullptr, propertyName, propertyValues, animationData._maxFrame, animationData._samples});
                         }
                     }
                 }
          
                 for (const auto &[componentName, group] : drawer->getComponentPropertyGroups())
                 {
-                     for (const auto &[animationName, properties] : group->_animations)
+                     for (const auto &[animationName, animationData] : group->_animations)
                     {
                         if (animationName == animation)
                         {
-                            for (const auto &[propertyName, propertyValues] : properties)
+                            for (const auto &[propertyName, propertyValues] : animationData._values)
                             {
-                                items.push_back({node, node->getComponent(componentName), propertyName, propertyValues});
+                                items.push_back({node, node->getComponent(componentName), propertyName, propertyValues, animationData._maxFrame, animationData._samples});
                             }
                         }
                     }
@@ -261,22 +261,63 @@ namespace CCImEditor
 
     void NodeImDrawer::update(float dt)
     {
-        // if (_animationState != AnimationState::Playing)
-        //     return;
+        if (_animationName.empty())
+            return;
 
-        // if (Editor::isInstancePresent())
-        //     return;
+        if (_isPlayingAnimation)
+        {
+            const ImPropertyGroup::AnimationData& animationData = _nodePropertyGroup->_animations[_animationName];
+            const float secondPerFrame = 1.0f / animationData._samples;
+            const int maxFrame = animationData._maxFrame;
+            
+            _elapsed += dt;
+            int df = static_cast<int>(abs(_elapsed / secondPerFrame));
+            switch (_animationWrapMode)
+            {
+            case AnimationWrapMode::Normal:
+                {
+                    _currentFrame += df;
+                    if (_currentFrame > maxFrame)
+                        _currentFrame = maxFrame;
+                }
+                break;
+            case AnimationWrapMode::Loop:
+                {
+                    _currentFrame += df;
+                    if (_currentFrame > maxFrame)
+                        _currentFrame = 0;
+                }
+                break;
+            case AnimationWrapMode::Reverse:
+                {
+                    _currentFrame -= df;
+                    if (_currentFrame < 0)
+                        _currentFrame = 0;
+                }
+                break;
+            case AnimationWrapMode::ReverseLoop:
+                {
+                    _currentFrame -= df;
+                    if (_currentFrame < 0)
+                        _currentFrame = maxFrame;
+                }
+                break;
+            }
+          
+            _elapsed -= (df * secondPerFrame);
+        }
 
-        // _elapsed += dt;
-        // _frame = static_cast<int>(_elapsed * _sample);
+        Internal::performRecursively(getOwner(), [&](cocos2d::Node* node) {
+            if (NodeImDrawer* drawer = node->getComponent<NodeImDrawer>())
+            {
+                ImPropertyGroup *group = drawer->getNodePropertyGroup();
+                group->sample();
 
-        // _nodePropertyGroup->play();
-        // for (const auto &[_, componentPropertyGroup] : _componentPropertyGroups)
-        // {
-        //     if (componentPropertyGroup.get())
-        //     {
-        //         componentPropertyGroup->play();
-        //     }
-        // }
+                for (const auto &[componentName, group] : drawer->getComponentPropertyGroups())
+                {
+                    group->sample();
+                }
+            }
+        });
     }
 }
