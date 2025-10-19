@@ -12,6 +12,7 @@
 #include "widgets/Viewport.h"
 #include "widgets/Assets.h"
 #include "widgets/Console.h"
+#include "widgets/Animation.h"
 #include "nodes/Node3D.h"
 #include "nodes/Sprite3D.h"
 #include "nodes/Node2D.h"
@@ -127,6 +128,10 @@ namespace CCImEditor
             drawer->serialize(properties);
             target.emplace("properties", cocos2d::Value(std::move(properties)));
 
+            cocos2d::ValueMap animations;
+            drawer->getNodePropertyGroup()->serializeAnimations(animations);
+            target.emplace("animations", cocos2d::Value(std::move(animations)));
+
             // For node loaded from file, don't serialize recursively
             if (drawer->getFilename().empty())
             {
@@ -154,6 +159,10 @@ namespace CCImEditor
                 cocos2d::ValueMap properties;
                 component->serialize(properties);
                 componentVal.emplace("properties", cocos2d::Value(std::move(properties)));
+
+                cocos2d::ValueMap animations;
+                component->serializeAnimations(animations);
+                componentVal.emplace("animations", cocos2d::Value(std::move(animations)));
 
                 componentsVal.emplace(name, std::move(componentVal));
             }
@@ -538,6 +547,7 @@ namespace CCImEditor
         WidgetFactory::getInstance()->registerWidget<NodeProperties>("CCImEditor.NodeProperties", "Node Properties");
         WidgetFactory::getInstance()->registerWidget<ImGuiDemo>("CCImEditor.ImGuiDemo", "ImGui Demo", WidgetFlags_DisallowMultiple);
         WidgetFactory::getInstance()->registerWidget<Console>("CCImEditor.Console", "Console", WidgetFlags_DisallowMultiple);
+        WidgetFactory::getInstance()->registerWidget<Animation>("CCImEditor.Animation", "Animation", WidgetFlags_DisallowMultiple);
     }
 
     void Editor::registerNodes()

@@ -11,6 +11,55 @@ namespace CCImEditor
 {
     namespace Internal
     {
+        namespace Animation
+        {
+            struct Sequence;
+
+            struct SequenceItem
+            {
+                SequenceItem(cocos2d::Node* node, cocos2d::Component* component, std::string name, const std::map<int, cocos2d::Value>& values, int frameMax, int samples)
+                : _node(node)
+                , _component(component)
+                , _name(name)
+                , _values(values)
+                , _frameMax(frameMax)
+                , _samples(samples)
+                {
+                    _frameStart = _values.begin()->first;
+                    _frameEnd = std::prev(_values.end())->first;
+
+                    int depth = 0;
+                    cocos2d::Node* parent = _node;
+                    while (parent = parent->getParent())
+                        depth ++;
+
+                    for (int i = 0; i < depth - 1; i++)
+                        _label += "  ";
+
+                    _label += node->getName();
+                    _label += ": ";
+                    if (_component)
+                    {
+                        _label += _component->getName();
+                        _label += ".";
+                    }
+
+                    _label += _name;
+                }
+
+                cocos2d::Node* _node;
+                cocos2d::Component* _component;
+                std::string _name;
+                const std::map<int, cocos2d::Value>& _values;
+
+                std::string _label;
+                int _frameStart;
+                int _frameEnd;
+                int _frameMax;
+                int _samples;
+            };
+        }
+
         struct DefaultArgumentTag {};
 
         struct DefaultGetterBase{};
@@ -23,8 +72,11 @@ namespace CCImEditor
         struct HasLerp<T, U, std::void_t<
             decltype(T::lerp(std::declval<U>(), std::declval<U>(), std::declval<float>()))
         >> : std::true_type {};
+
+        void performRecursively(cocos2d::Node *node, std::function<void(cocos2d::Node*)> func);
     }
 
+    class Animation;
     class ImPropertyGroup : public cocos2d::Ref
     {
     public:
@@ -33,16 +85,20 @@ namespace CCImEditor
             DRAW,
             SERIALIZE,
             DESERIALIZE,
-            PLAY,
+            SAMPLE,
         };
 
         friend class NodeFactory;
         friend class ComponentFactory;
+        friend struct Internal::Animation::Sequence;
+        friend class NodeImDrawer;
+        friend class Animation;
         virtual void draw() {};
         void serialize(cocos2d::ValueMap&);
+        void serializeAnimations(cocos2d::ValueMap&);
         void deserialize(const cocos2d::ValueMap&);
         void deserializeAnimations(const cocos2d::ValueMap&);
-        void play(const std::string& animation, int frame);
+        void sample();
         const std::string& getTypeName() const {return _typeName;}
         const std::string& getShortName() const {return _shortName;}
         virtual bool init();
@@ -125,7 +181,11 @@ namespace CCImEditor
                         CC_ASSERT(_activeID == ImGui::GetItemID());
                     }
 
-                    PropertyImDrawerType::serialize(_customValue[key], v);
+                    auto drawer = getDrawer();
+                    if (drawer->isRecordingAnimation())
+                        PropertyImDrawerType::serialize(_animations[drawer->_animationName]._values[key][drawer->_currentFrame], v);
+                    else
+                        PropertyImDrawerType::serialize(_customValue[key], v);
                     std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
                 }
                 else
@@ -142,19 +202,20 @@ namespace CCImEditor
                     }
                 }
             }
-            else if (_context == Context::PLAY)
+            else if (_context == Context::SAMPLE)
             {
                 do
                 {
-                    auto animation = _animations.find(*_animation);
+                    auto drawer = getDrawer();
+                    auto animation = _animations.find(drawer->_animationName);
                     if (animation == _animations.end())
                         break;
 
-                    auto property = animation->second.find(key);
-                    if (property == animation->second.end())
+                    auto property = animation->second._values.find(key);
+                    if (property == animation->second._values.end())
                         break;
 
-                    auto it1 = property->second.upper_bound(_frame);
+                    auto it1 = property->second.upper_bound(drawer->_currentFrame);
                     auto it0 = std::prev(it1);
                     if (it1 != property->second.end() && it0 != property->second.end())
                     {
@@ -165,7 +226,7 @@ namespace CCImEditor
                             if (PropertyImDrawerType::deserialize(it0->second, v0) &&
                                 PropertyImDrawerType::deserialize(it1->second, v1))
                             {
-                                float offset = (float)(_frame - it0->first) / (it1->first - it0->first);
+                                float offset = (float)(drawer->_currentFrame - it0->first) / (it1->first - it0->first);
                                 PropertyType v = PropertyImDrawerType::lerp(v0, v1, offset);
                                 std::invoke(std::forward<Setter>(setter), std::forward<Object>(object), v);
                             }
@@ -237,17 +298,34 @@ namespace CCImEditor
         cocos2d::ValueMap _customValue;
         
     private:
+        NodeImDrawer* getDrawer() const 
+        {
+            cocos2d::Ref* owner = _owner.get();
+            if (cocos2d::Node* node = dynamic_cast<cocos2d::Node*>(owner))
+            {
+                return node->getComponent<NodeImDrawer>();
+            }
+            else
+            {
+                cocos2d::Component* component = static_cast<cocos2d::Component*>(owner);
+                return component->getOwner()->getComponent<NodeImDrawer>();
+            }
+        }
+
         std::string _typeName;
         std::string _shortName;
         cocos2d::ValueMap* _contextValue = nullptr;
         std::function<void()> _undo;
         ImGuiID _activeID = 0;
-        cocos2d::RefPtr<cocos2d::Ref> _owner;
+        cocos2d::WeakPtr<cocos2d::Ref> _owner;
 
-        // animations
-        const std::string* _animation;
-        int _frame;
-        std::unordered_map<std::string, std::unordered_map<std::string, std::map<int, cocos2d::Value>>> _animations;
+        struct AnimationData
+        {
+            uint16_t _samples = 30;
+            int _maxFrame = 30;
+            std::unordered_map<std::string, std::map<int, cocos2d::Value>> _values;
+        };
+        std::unordered_map<std::string, AnimationData> _animations;
     };
 
     template <class T>
@@ -271,17 +349,28 @@ namespace CCImEditor
         T _defaultValue;
     };
 
+    enum class AnimationWrapMode
+    {
+        Normal,
+        Loop,
+        Reverse,
+        ReverseLoop,
+    };
+
     class NodeImDrawer : public cocos2d::Component
     {
     public:
         friend class NodeFactory;
+        friend class Animation;
+        friend class ImPropertyGroup;
         static NodeImDrawer* create();
         bool init() override;
 
         void draw();
         void serialize(cocos2d::ValueMap& target){_nodePropertyGroup->serialize(target);}
         void deserialize(const cocos2d::ValueMap& source){_nodePropertyGroup->deserialize(source);}
-        void play(const std::string& animation);
+        void play(const std::string& animation, AnimationWrapMode wrapMode = AnimationWrapMode::Normal);
+        void stop();
 
         const std::string& getTypeName() const {return _nodePropertyGroup->getTypeName();}
         const std::string& getShortName() const {return _nodePropertyGroup->getShortName();}
@@ -301,15 +390,24 @@ namespace CCImEditor
 
         void update(float dt) override;
 
+        bool isRecordingAnimation() const {return !_animationName.empty() && !_isPlayingAnimation;}
     private:
-        std::string _animation;
-        float _elapsed;
-        uint16_t _sample = 30;
+        void applyAnimationRecursively(bool isPlaying, const std::string& animation, int frame, int maxFrame, AnimationWrapMode wrapMode, uint16_t sample);
+
+        std::vector<Internal::Animation::SequenceItem> getAnimationSequenceItems(const std::string& animation) const;
+        std::unordered_map<std::string, bool> getAnimationNames() const;
 
         uint32_t getMask() const;
         cocos2d::RefPtr<ImPropertyGroup> _nodePropertyGroup;
         std::map<std::string, cocos2d::RefPtr<ImPropertyGroup>> _componentPropertyGroups;
         std::string _filename;
+
+        // animation
+        bool _isPlayingAnimation;
+        std::string _animationName;
+        int _currentFrame;
+        AnimationWrapMode _animationWrapMode = AnimationWrapMode::Loop;
+        float _elapsed = 0.0f;
     };
 }
 
