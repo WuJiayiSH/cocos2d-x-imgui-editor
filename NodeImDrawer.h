@@ -176,9 +176,9 @@ namespace CCImEditor
                         _undo = getSetterWrapper<DrawerType>(key, std::forward<Setter>(setter), std::forward<Object>(object), v0);
                         _activeID = ImGui::GetItemID();
                     }
-                    else
+                    else if (_activeID != ImGui::GetItemID())
                     {
-                        CC_ASSERT(_activeID == ImGui::GetItemID());
+                        CCLOGWARN("Active ID mismatch in ImPropertyGroup::property! current ID: %u, active ID: %u", ImGui::GetItemID(), _activeID);
                     }
 
                     auto drawer = getDrawer();
