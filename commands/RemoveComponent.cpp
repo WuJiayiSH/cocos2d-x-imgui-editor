@@ -13,7 +13,7 @@ namespace CCImEditor
 
     void RemoveComponent::execute()
     {
-        cocos2d::Component* owner = static_cast<cocos2d::Component*>(_component->getOwner());
+        cocos2d::RefPtr<cocos2d::Component> owner = static_cast<cocos2d::Component*>(_component->getOwner());
         _node->removeComponent(owner);
 
         NodeImDrawer* drawer = _node->getComponent<NodeImDrawer>();

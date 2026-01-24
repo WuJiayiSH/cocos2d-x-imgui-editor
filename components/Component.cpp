@@ -18,7 +18,7 @@ namespace CCImEditor
             }
         }
         
-        if (!open)
-            return;
+        if (open)
+            drawProperties();
     }
 }

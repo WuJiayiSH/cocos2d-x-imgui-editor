@@ -4,34 +4,33 @@ namespace CCImEditor
 {
     void AddComponent::undo()
     {
-        cocos2d::Component* owner = static_cast<cocos2d::Component*>(_component->getOwner());
-        _node->removeComponent(owner);
+        _node->removeComponent(_component);
 
         if (NodeImDrawer* drawer = _node->getComponent<NodeImDrawer>())
         {
-            drawer->setComponentPropertyGroup(owner->getName(), nullptr);
+            drawer->setComponentPropertyGroup(_component->getName(), nullptr);
         }
     }
 
     void AddComponent::execute()
     {
-        cocos2d::Component* owner = static_cast<cocos2d::Component*>(_component->getOwner());
-        _node->addComponent(owner);
+        _node->addComponent(_component);
 
         if (NodeImDrawer* drawer = _node->getComponent<NodeImDrawer>())
         {
-            drawer->setComponentPropertyGroup(owner->getName(), _component);
+            drawer->setComponentPropertyGroup(_component->getName(), _imPropertyGroup);
         }
     }
 
-    AddComponent* AddComponent::create(cocos2d::Node* node, ImPropertyGroup* component)
+    AddComponent* AddComponent::create(cocos2d::Node* node, ImPropertyGroup* imPropertyGroup)
     {
-        if (node && component)
+        if (node && imPropertyGroup)
         {
             if (AddComponent* command = new (std::nothrow)AddComponent())
             {
                 command->_node = node;
-                command->_component = component;
+                command->_imPropertyGroup = imPropertyGroup;
+                command->_component = static_cast<cocos2d::Component*>(imPropertyGroup->getOwner());
                 command->autorelease();
                 return command;
             }

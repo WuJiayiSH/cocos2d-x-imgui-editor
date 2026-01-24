@@ -9,6 +9,9 @@ namespace CCImEditor
     {
     public:
         void draw() override;
+
+    protected:
+        virtual void drawProperties() {};
     };
 }
 
