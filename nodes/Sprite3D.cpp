@@ -30,21 +30,29 @@ namespace CCImEditor
             },
             owner);
 
-        property<FilePath>("Material", 
+        for (ssize_t i = 0; i < owner->getMeshCount(); ++i)
+        {
+            std::string matName = cocos2d::StringUtils::format("Material (%zd)###Material.%zd", i, i);
+            property<FilePath>(matName.c_str(), 
             DefaultGetter<std::string>(),
-            [this] (cocos2d::Sprite3D* node, const std::string& filePath)
+            [this, i] (cocos2d::Sprite3D* node, const std::string& filePath)
             {
                 if (cocos2d::Material* material = cocos2d::Material::createWithFilename(filePath))
                 {
-                    node->setMaterial(material);
+                    node->setMaterial(material, i);
                 }
             },
             owner);
 
-        property<FilePath>("Texture", 
+            std::string texName = cocos2d::StringUtils::format("Texture (%zd)###Texture.%zd", i, i);
+            property<FilePath>(texName.c_str(), 
             DefaultGetter<std::string>(),
-            static_cast<void(cocos2d::Sprite3D::*)(const std::string&)>(&cocos2d::Sprite3D::setTexture),
+            [this, i] (cocos2d::Sprite3D* node, const std::string& filePath)
+            {
+                node->getMeshByIndex(i)->setTexture(filePath);
+            },
             owner);
+        }
 
         property<MaskOf<cocos2d::LightFlag>>("LightMask", &cocos2d::Sprite3D::getLightMask, &cocos2d::Sprite3D::setLightMask, owner);
 
