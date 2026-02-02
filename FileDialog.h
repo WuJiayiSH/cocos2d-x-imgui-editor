@@ -52,6 +52,9 @@ namespace Internal {
     };
 
     bool fileBrowser(const char* id, FileInfo& outFileInfo, float marginBottom);
+
+    // Clears the file dialog's internal cache of file lists
+    void clearFileDialogCache();
 }
 }
 

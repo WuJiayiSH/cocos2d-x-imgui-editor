@@ -763,6 +763,11 @@ namespace CCImEditor
                     });
                 }
 
+                if (ImGui::MenuItem("Refresh Assets"))
+                {
+                    Internal::clearFileDialogCache();
+                }
+
                 ImGui::Separator();
 
                 if (ImGui::BeginMenu("Preferences"))

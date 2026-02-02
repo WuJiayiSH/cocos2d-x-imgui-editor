@@ -300,5 +300,10 @@ namespace Internal {
 
         return outFileInfo._dirtyMask > 0;
     }
+
+    void clearFileDialogCache()
+    {
+        s_fileListCache.clear();
+    }
 }
 }
