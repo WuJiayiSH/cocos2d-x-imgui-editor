@@ -452,6 +452,12 @@ namespace CCImEditor
         cocos2d::FileUtils* fileUtil = cocos2d::FileUtils::getInstance();
         std::string editorLog = fileUtil->getWritablePath() + "cc_imgui_editor/editor.log";
         freopen(editorLog.c_str(), "w", stdout);
+
+        std::vector<std::string> searchPaths = fileUtil->getSearchPaths();
+        for (const auto& path : searchPaths)
+        {
+            import(path);
+        }
     }
 
     void Editor::onExit()
@@ -1269,6 +1275,48 @@ namespace CCImEditor
         for (cocos2d::Node* child: node->getChildren())
         {
             unpackRecursively(child);
+        }
+    }
+
+    void Editor::addImportRule(const std::string& extention, const std::string& command) {
+        _importRules.push_back({extention, command});
+    }
+
+    void Editor::import(const std::string& dir)
+    {
+        cocos2d::FileUtils* fileUtil = cocos2d::FileUtils::getInstance();
+        std::vector<std::string> files = fileUtil->listFiles(dir);
+        for (const std::string& file : files)
+        {
+            if (fileUtil->isDirectoryExist(file))
+                continue;
+
+            for (const ImportRule& rule : _importRules)
+            {
+                if (rule.extention == fileUtil->getFileExtension(file)) 
+                {
+                    std::string command = cocos2d::StringUtils::format(rule.command.c_str(), file.c_str());
+                    CCLOG("Executing import command: %s", command.c_str());
+                    system(command.c_str());
+                }
+            }
+        }
+
+        // import sub directories
+        for (std::string file : files)
+        {
+            if (fileUtil->isDirectoryExist(file))
+            {
+                while (file.back() == '/' || file.back() == '\\')
+                {
+                    file.pop_back();
+                }
+                std::string filename = fileUtil->getFilename(file);
+                if (filename != "." && filename != "..")
+                {
+                    import(file);
+                }
+            }
         }
     }
 }
