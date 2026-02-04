@@ -453,10 +453,9 @@ namespace CCImEditor
         std::string editorLog = fileUtil->getWritablePath() + "cc_imgui_editor/editor.log";
         freopen(editorLog.c_str(), "w", stdout);
 
-        std::vector<std::string> searchPaths = fileUtil->getSearchPaths();
-        for (const auto& path : searchPaths)
+        for (const ImportRuleSet& importRuleSet : _importRuleSets)
         {
-            import(path);
+            import(importRuleSet._path, importRuleSet._rules, importRuleSet._recursive);
         }
     }
 
@@ -1278,24 +1277,25 @@ namespace CCImEditor
         }
     }
 
-    void Editor::addImportRule(const std::string& extention, const std::string& command) {
-        _importRules.push_back({extention, command});
+    void Editor::addImportRule(const std::string& path, const std::vector<ImportRule>& rules, bool recursive)
+    {
+        _importRuleSets.push_back({path, recursive, rules});
     }
 
-    void Editor::import(const std::string& dir)
+    void Editor::import(const std::string& path, const std::vector<ImportRule>& rules, bool recursive)
     {
         cocos2d::FileUtils* fileUtil = cocos2d::FileUtils::getInstance();
-        std::vector<std::string> files = fileUtil->listFiles(dir);
+        std::vector<std::string> files = fileUtil->listFiles(path);
         for (const std::string& file : files)
         {
             if (fileUtil->isDirectoryExist(file))
                 continue;
 
-            for (const ImportRule& rule : _importRules)
+            for (const ImportRule& rule : rules)
             {
-                if (rule.extention == fileUtil->getFileExtension(file)) 
+                if (rule._extention == fileUtil->getFileExtension(file)) 
                 {
-                    std::string command = cocos2d::StringUtils::format(rule.command.c_str(), file.c_str());
+                    std::string command = cocos2d::StringUtils::format(rule._command.c_str(), file.c_str());
                     CCLOG("Executing import command: %s", command.c_str());
                     system(command.c_str());
                 }
@@ -1303,18 +1303,21 @@ namespace CCImEditor
         }
 
         // import sub directories
-        for (std::string file : files)
+        if (recursive)
         {
-            if (fileUtil->isDirectoryExist(file))
+            for (std::string file : files)
             {
-                while (file.back() == '/' || file.back() == '\\')
+                if (fileUtil->isDirectoryExist(file))
                 {
-                    file.pop_back();
-                }
-                std::string filename = fileUtil->getFilename(file);
-                if (filename != "." && filename != "..")
-                {
-                    import(file);
+                    while (file.back() == '/' || file.back() == '\\')
+                    {
+                        file.pop_back();
+                    }
+                    std::string filename = fileUtil->getFilename(file);
+                    if (filename != "." && filename != "..")
+                    {
+                        import(file, rules, recursive);
+                    }
                 }
             }
         }

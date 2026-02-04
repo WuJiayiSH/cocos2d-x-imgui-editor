@@ -65,7 +65,12 @@ namespace CCImEditor
 
         void addRunnable(const std::string& label, std::function<void()> func) {_runnables.emplace_back(label, func);}
 
-        void addImportRule(const std::string& extention, const std::string& command);
+        struct ImportRule
+        {
+            std::string _extention;
+            std::string _command;
+        };
+        void addImportRule(const std::string& path, const std::vector<ImportRule>& rules, bool recursive = false);
 
     CC_CONSTRUCTOR_ACCESS: 
         Editor();
@@ -85,7 +90,7 @@ namespace CCImEditor
         void serializeEditingNodeToFile(const std::string& file);
         void setCurrentFile(const std::string& file);
 
-        void import(const std::string& dir);
+        void import(const std::string& path, const std::vector<ImportRule>& rules, bool recursive);
 
         typedef std::pair<std::string, std::function<void()>> Runnable;
         std::vector<Runnable> _runnables;
@@ -116,13 +121,14 @@ namespace CCImEditor
         std::string _currentFile;
         cocos2d::ValueMap _settings;
         
-        struct ImportRule
+        struct ImportRuleSet
         {
-            std::string extention;
-            std::string command;
+            std::string _path;
+            bool _recursive;
+            std::vector<ImportRule> _rules;
         };
         
-        std::vector<ImportRule> _importRules;
+        std::vector<ImportRuleSet> _importRuleSets;
     };
 }
 
