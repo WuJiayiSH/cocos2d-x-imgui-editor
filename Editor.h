@@ -67,7 +67,7 @@ namespace CCImEditor
 
         struct ImportRule
         {
-            std::string _extention;
+            std::function<bool(const std::string& path)> _filter;
             std::string _command;
         };
         void addImportRule(const std::string& path, const std::vector<ImportRule>& rules, bool recursive = false);

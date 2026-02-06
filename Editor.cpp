@@ -1293,7 +1293,7 @@ namespace CCImEditor
 
             for (const ImportRule& rule : rules)
             {
-                if (rule._extention == fileUtil->getFileExtension(file)) 
+                if (rule._filter(file))
                 {
                     std::string command = cocos2d::StringUtils::format(rule._command.c_str(), file.c_str());
                     CCLOG("Executing import command: %s", command.c_str());
