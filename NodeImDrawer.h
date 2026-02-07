@@ -145,6 +145,24 @@ namespace CCImEditor
         }
 
     protected:
+
+        template <class DrawerType = Internal::DefaultArgumentTag, class PropertyType>
+        bool getCustomValue(const char *key, PropertyType& v)
+        {
+            using PropertyOrDrawerType = typename std::conditional<std::is_same<DrawerType, Internal::DefaultArgumentTag>::value, PropertyType, DrawerType>::type;
+
+            auto it = _customValue.find(key);
+            if (it != _customValue.end())
+            {
+                if (CCImEditor::PropertyImDrawer<PropertyOrDrawerType>::deserialize(it->second, v))
+                {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
         template <class DrawerType = Internal::DefaultArgumentTag, class Getter, class Setter, class Object, class... Args>
         void property(const char *label, Getter &&getter, Setter &&setter, Object&& object, Args &&...args)
         {

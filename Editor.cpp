@@ -22,6 +22,7 @@
 #include "nodes/PointLight.h"
 #include "nodes/SpotLight.h"
 #include "nodes/Geometry.h"
+#include "nodes/Skybox.h"
 #include "commands/AddNode.h"
 #include "commands/RemoveNode.h"
 #include "commands/AddComponent.h"
@@ -565,6 +566,7 @@ namespace CCImEditor
         NodeFactory::getInstance()->registerNode<Sprite3D, cocos2d::Sprite3D>("CCImEditor.Sprite3D", "3D/Sprite3D", NodeFlags_CanHaveComponents);
         NodeFactory::getInstance()->registerNode<Geometry, QuadProxy>("CCImEditor.Quad", "3D/Quad", NodeFlags_CanHaveComponents);
         NodeFactory::getInstance()->registerNode<Geometry, CubeProxy>("CCImEditor.Cube", "3D/Cube", NodeFlags_CanHaveComponents);
+        NodeFactory::getInstance()->registerNode<Skybox, cocos2d::Skybox>("CCImEditor.Skybox", "3D/Skybox", NodeFlags_CanHaveComponents);
 
         NodeFactory::getInstance()->registerNode<DirectionLight, DirectionLightProxy>("CCImEditor.DirectionLight", "3D/Light/Direction Light", NodeFlags_CanHaveComponents);
         NodeFactory::getInstance()->registerNode<PointLight, PointLightProxy>("CCImEditor.PointLight", "3D/Light/Point Light", NodeFlags_CanHaveComponents);

@@ -37,6 +37,7 @@ file(GLOB_RECURSE SOURCE
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Sprite.cpp
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Label.cpp
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Geometry.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/nodes/Skybox.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/ImGuiDemo.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeTree.cpp
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeProperties.cpp
@@ -74,6 +75,7 @@ file(GLOB_RECURSE HEADER
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Sprite.h
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Label.h
     ${CMAKE_CURRENT_LIST_DIR}/nodes/Geometry.h
+    ${CMAKE_CURRENT_LIST_DIR}/nodes/Skybox.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/ImGuiDemo.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeTree.h
     ${CMAKE_CURRENT_LIST_DIR}/widgets/NodeProperties.h
