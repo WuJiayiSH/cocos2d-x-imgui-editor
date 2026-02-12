@@ -52,6 +52,18 @@ namespace CCImEditor
                 node->getMeshByIndex(i)->setTexture(filePath);
             },
             owner);
+
+            std::string transparentName = cocos2d::StringUtils::format("Transparent (%zd)###Transparent.%zd", i, i);
+            property(transparentName.c_str(), 
+            [this, i] (cocos2d::Sprite3D* node) -> bool
+            {
+                return node->getMeshByIndex(i)->isTransparent();
+            },
+            [this, i] (cocos2d::Sprite3D* node, bool isTransparent)
+            {
+                node->getMeshByIndex(i)->setTransparent(isTransparent);
+            },
+            owner);
         }
 
         property<MaskOf<cocos2d::LightFlag>>("LightMask", &cocos2d::Sprite3D::getLightMask, &cocos2d::Sprite3D::setLightMask, owner);
