@@ -626,13 +626,26 @@ namespace CCImEditor
         cocos2d::ValueMap root;
         if (serializeNode(getEditingNode(), root))
         {
-            if (cocos2d::FileUtils::getInstance()->writeToFile(root, file))
+            std::string extension = cocos2d::FileUtils::getInstance()->getFileExtension(file);
+            std::string content;
+            if (extension == ".json")
+            {
+                content = cocos2d::JSON::encode(cocos2d::Value(std::move(root)));
+            }
+            else
+            {
+                content = cocos2d::PList::encode(cocos2d::Value(std::move(root)));
+            }
+
+            if (cocos2d::FileUtils::getInstance()->writeStringToFile(content, file))
             {
                 setCurrentFile(file);
                 getCommandHistory().setSavePoint();
             }
             else
+            {
                 alert("Failed to write to file: %s", file.c_str());
+            }
         }
         else
         {
@@ -1116,11 +1129,29 @@ namespace CCImEditor
 
     cocos2d::Node* Editor::loadFile(const std::string& file)
     {
-        const cocos2d::ValueMap& valueMap = cocos2d::FileUtils::getInstance()->getValueMapFromFile(file);
-        cocos2d::Node* node = nullptr;
-        if (deserializeNode(&node, valueMap))
+        std::string extension = cocos2d::FileUtils::getInstance()->getFileExtension(file);
+        if (extension == ".json")
         {
-            return node;
+            std::string content = cocos2d::FileUtils::getInstance()->getStringFromFile(file);
+            cocos2d::Value value;
+            if (cocos2d::JSON::decode(content, value) == cocos2d::JSON::ErrorCode::SUCCESS && 
+                value.getType() == cocos2d::Value::Type::MAP)
+            {
+                cocos2d::Node* node = nullptr;
+                if (deserializeNode(&node, value.asValueMap()))
+                {
+                    return node;
+                }
+            }
+        }
+        else
+        {
+            const cocos2d::ValueMap& valueMap = cocos2d::FileUtils::getInstance()->getValueMapFromFile(file);
+            cocos2d::Node* node = nullptr;
+            if (deserializeNode(&node, valueMap))
+            {
+                return node;
+            }
         }
 
         return nullptr;
