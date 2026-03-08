@@ -630,7 +630,8 @@ namespace CCImEditor
             std::string content;
             if (extension == ".json")
             {
-                content = cocos2d::JSON::encode(cocos2d::Value(std::move(root)));
+                cocos2d::JSON::Option option{1024 * 128, true};
+                content = cocos2d::JSON::encode(cocos2d::Value(std::move(root)), option);
             }
             else
             {
