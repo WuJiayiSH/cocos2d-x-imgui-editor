@@ -4,11 +4,19 @@ namespace CCImEditor
 {
     void AddNode::undo()
     {
-        _child->removeFromParent();
+        _parent->removeChild(_child);
+        if (_parentBefore)
+        {
+            _parentBefore->addChild(_child);
+        }
     }
 
     void AddNode::execute()
     {
+        if (_parentBefore)
+        {
+            _parentBefore->removeChild(_child);
+        }
         _parent->addChild(_child);
     }
 
@@ -18,6 +26,7 @@ namespace CCImEditor
         {
             if (AddNode* command = new (std::nothrow)AddNode())
             {
+                command->_parentBefore = child->getParent();
                 command->_parent = parent;
                 command->_child = child;
                 command->autorelease();

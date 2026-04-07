@@ -15,6 +15,7 @@ namespace CCImEditor
     private:
         cocos2d::RefPtr<cocos2d::Node> _parent;
         cocos2d::RefPtr<cocos2d::Node> _child;
+        cocos2d::RefPtr<cocos2d::Node> _parentBefore;
     };
 }
 

@@ -5,6 +5,8 @@
 #include "CCIMGUI.h"
 #include "cocos2d.h"
 
+#include "commands/AddNode.h"
+
 using namespace cocos2d;
 
 namespace CCImEditor
@@ -64,6 +66,36 @@ namespace CCImEditor
                 "%s",
                 label.c_str()
             );
+
+            if (ImGui::BeginDragDropSource())
+            {
+                ImGui::SetDragDropPayload("Node", &node, sizeof(node));
+                ImGui::Text("%s", label.c_str());
+                ImGui::EndDragDropSource();
+            }
+
+            if (ImGui::BeginDragDropTarget())
+            {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Node"))
+                {
+                    Node* draggedNode = *(Node**)payload->Data;
+
+                    // Check if dragged node is not an ancestor of the current node
+                    Node* current = node;
+                    while (current && current != draggedNode)
+                    {
+                        current = current->getParent();
+                    }
+
+                    if (current != draggedNode)
+                    {
+                        AddNode* cmd = AddNode::create(node, draggedNode);
+                        Editor::getInstance()->getCommandHistory().queue(cmd);
+                    }
+                }
+
+                ImGui::EndDragDropTarget();
+            }
 
             if (ImGui::IsItemClicked())
             {
