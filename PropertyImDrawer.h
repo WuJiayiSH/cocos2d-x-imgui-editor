@@ -3,8 +3,8 @@
 
 #include <string>
 #include "Widget.h"
-#include "imgui/imgui.h"
-#include "imgui/misc/cpp/imgui_stdlib.h"
+#include "imgui.h"
+#include "misc/cpp/imgui_stdlib.h"
 #include "Editor.h"
 #include <magic_enum/magic_enum.hpp>
 #include <algorithm>

@@ -2,9 +2,8 @@
 #include "ComponentFactory.h"
 #include "NodeFactory.h"
 #include "WidgetFactory.h"
-#include "CCIMGUI.h"
-#include "imgui_impl_cocos2dx.h"
-#include "imgui/imgui_internal.h"
+#include "imgui.h"
+#include "imgui_internal.h"
 #include "ImGuiHelper.h"
 #include "widgets/ImGuiDemo.h"
 #include "widgets/NodeProperties.h"
@@ -284,27 +283,6 @@ namespace CCImEditor
             return true;
         }
 
-        void drawImGui()
-        {
-            if (cocos2d::GLProgram* program = cocos2d::GLProgramCache::getInstance()->getGLProgram(cocos2d::GLProgram::SHADER_NAME_POSITION_COLOR))
-            {
-                program->use();
-
-                // create frame
-                ImGui_ImplCocos2dx_NewFrame();
-
-                ImGuizmo::BeginFrame();
-
-                // draw all gui
-                CCIMGUI::getInstance()->update();
-
-                // render
-                glUseProgram(0);
-                ImGui::Render();
-                ImGui_ImplCocos2dx_RenderDrawData(ImGui::GetDrawData());
-            }
-        }
-
         class DirectionLightProxy
         {
         public:
@@ -414,9 +392,6 @@ namespace CCImEditor
         if (!Node::init())
             return false;
 
-        if (!CCIMGUI::getInstance())
-            return false;
-
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
@@ -447,7 +422,8 @@ namespace CCImEditor
     {
         Node::onEnter();
 
-        CCIMGUI::getInstance()->addCallback(std::bind(&Editor::callback, this), "CCImEditor.Editor");
+        cocos2d::ImGuiManager* imGuiManager = cocos2d::Director::getInstance()->getImGuiManager();
+        imGuiManager->addCallback(std::bind(&Editor::callback, this), "CCImEditor.Editor");
         scheduleUpdate();
 
         cocos2d::FileUtils* fileUtil = cocos2d::FileUtils::getInstance();
@@ -464,7 +440,8 @@ namespace CCImEditor
     {
         Node::onExit();
 
-        CCIMGUI::getInstance()->removeCallback("CCImEditor.Editor");
+        cocos2d::ImGuiManager* imGuiManager = cocos2d::Director::getInstance()->getImGuiManager();
+        imGuiManager->removeCallback("CCImEditor.Editor");
         unscheduleUpdate();
     }
 
@@ -579,18 +556,6 @@ namespace CCImEditor
 #if CCIME_LUA_ENGINE
         ComponentFactory::getInstance()->registerComponent<ComponentLua, cocos2d::ComponentLua>("CCImEditor.ComponentLua", "ComponentLua");
 #endif
-    }
-
-    void Editor::visit(cocos2d::Renderer *renderer, const cocos2d::Mat4 &parentTransform, uint32_t parentFlags)
-    {
-        cocos2d::Layer::visit(renderer, parentTransform, parentFlags);
-
-        if (isVisitableByVisitingCamera())
-        {
-            _command.init(_globalZOrder);
-            _command.func = drawImGui;
-            cocos2d::Director::getInstance()->getRenderer()->addCommand(&_command);
-        }
     }
 
     void Editor::setCurrentFile(const std::string& file)

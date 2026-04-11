@@ -6,7 +6,7 @@
 #include "Widget.h"
 #include "CommandHistory.h"
 #include "FileDialog.h"
-#include "imgui/imgui.h"
+#include "imgui.h"
 
 namespace CCImEditor
 {
@@ -35,8 +35,6 @@ namespace CCImEditor
         void registerWidgets();
         void registerNodes();
         void registerComponents();
-        
-        void visit(cocos2d::Renderer *renderer, const cocos2d::Mat4 &parentTransform, uint32_t parentFlags) override;
 
         void openLoadFileDialog(std::function<void(const std::string&)> callback = nullptr);
         void openSaveFileDialog(std::function<void(const std::string&)> callback = nullptr);

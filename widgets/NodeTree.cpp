@@ -2,7 +2,6 @@
 #include "WidgetFactory.h"
 #include "Editor.h"
 #include "NodeImDrawer.h"
-#include "CCIMGUI.h"
 #include "cocos2d.h"
 
 #include "commands/AddNode.h"

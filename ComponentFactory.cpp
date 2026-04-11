@@ -1,5 +1,4 @@
 #include "ComponentFactory.h"
-#include "CCIMGUI.h"
 
 namespace CCImEditor
 {

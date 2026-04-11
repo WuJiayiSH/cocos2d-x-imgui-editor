@@ -1,5 +1,5 @@
 #include "FileDialog.h"
-#include "imgui/imgui.h"
+#include "imgui.h"
 #include "cocos2d.h"
 
 namespace CCImEditor {

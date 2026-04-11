@@ -2,7 +2,7 @@
 #define __CCIMEDITOR_CONSOLE_H__
 
 #include "Widget.h"
-#include "imgui/imgui.h"
+#include "imgui.h"
 
 namespace CCImEditor
 {

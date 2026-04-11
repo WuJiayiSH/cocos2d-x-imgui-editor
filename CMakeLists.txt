@@ -1,8 +1,6 @@
 set(LIB_NAME cc_imgui_editor)
 
 include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/cocos2d-x-imgui
-    ${CMAKE_CURRENT_SOURCE_DIR}/cocos2d-x-imgui/imgui
     ${CMAKE_CURRENT_SOURCE_DIR}/ImGuizmo
     ${CMAKE_CURRENT_SOURCE_DIR}/invoke.hpp/headers
     ${CMAKE_CURRENT_SOURCE_DIR}/magic_enum/include
@@ -13,6 +11,7 @@ include_directories(
     ${COCOS2DX_ROOT_PATH}/cocos/platform
     ${COCOS2DX_ROOT_PATH}/external
     ${COCOS2DX_ROOT_PATH}/external/glfw3/include/win32
+    ${COCOS2DX_ROOT_PATH}/external/imgui/imgui
 )
 
 if(WINDOWS)
@@ -102,9 +101,6 @@ endif()
 
 add_library(${LIB_NAME} STATIC ${SOURCE} ${HEADER})
 add_dependencies(${LIB_NAME} cocos2d)
-
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/cocos2d-x-imgui)
-target_link_libraries(${LIB_NAME} cc_imgui)
 
 if(BUILD_LUA_LIBS)
     target_compile_definitions(${LIB_NAME} PRIVATE CCIME_LUA_ENGINE)

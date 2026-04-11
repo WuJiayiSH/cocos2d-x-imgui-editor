@@ -2,8 +2,8 @@
 
 #include "Editor.h"
 
-#include "imgui/imgui.h"
-#include "imgui/imgui_internal.h"
+#include "imgui.h"
+#include "imgui_internal.h"
 #include "ImSequencer.h"
 #include "cocos2d.h"
 #include "PropertyImDrawer.h"

@@ -2,7 +2,7 @@
 #define __CCIMEDITOR_ANIMATION_H__
 
 #include "Widget.h"
-#include "imgui/imgui.h"
+#include "imgui.h"
 #include "ImSequencer.h"
 #include "NodeImDrawer.h"
 
