@@ -253,7 +253,10 @@ namespace CCImEditor
                     ray._direction.subtract(ray._origin);
                     ray._direction.normalize();
 
-                    selectRecursively(Editor::getInstance()->getEditingNode(), ray);
+                    if (cocos2d::Node *editingNode = Editor::getInstance()->getEditingNode())
+                    {
+                        selectRecursively(editingNode, ray);
+                    }
                 }
             }
         }
