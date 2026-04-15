@@ -127,6 +127,8 @@ namespace CCImEditor
         };
         
         std::vector<ImportRuleSet> _importRuleSets;
+
+        bool _buildDockSpace;
     };
 }
 

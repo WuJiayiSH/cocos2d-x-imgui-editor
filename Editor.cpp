@@ -398,6 +398,7 @@ namespace CCImEditor
         cocos2d::FileUtils* fileUtil = cocos2d::FileUtils::getInstance();
         fileUtil->createDirectory(fileUtil->getWritablePath() + "cc_imgui_editor");
         static const std::string lastSessionFile = fileUtil->getWritablePath() + "cc_imgui_editor/last_session.ini";
+        _buildDockSpace = !fileUtil->isFileExist(lastSessionFile);
         io.IniFilename = lastSessionFile.c_str();
         
         const int style = cocos2d::UserDefault::getInstance()->getIntegerForKey("cc_imgui_editor.style", 0);
@@ -638,6 +639,33 @@ namespace CCImEditor
 
         ImGuiID dockspaceId = ImGui::GetID("CCImEditor.Editor");
         ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+
+        if (_buildDockSpace) {
+            _buildDockSpace = false;
+            
+            // Clear existing layout
+            ImGui::DockBuilderRemoveNode(dockspaceId);
+            ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
+            ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->Size);
+            
+            // Split the dockspace into regions
+            ImGuiID dockMain = dockspaceId;
+            
+            ImGuiID dockRight = ImGui::DockBuilderSplitNode(dockMain, ImGuiDir_Right, 0.30f, nullptr, &dockMain);
+            ImGuiID dockBottom = ImGui::DockBuilderSplitNode(dockMain, ImGuiDir_Down, 0.25f, nullptr, &dockMain);
+            ImGuiID dockLeft = ImGui::DockBuilderSplitNode(dockMain, ImGuiDir_Left, 0.25f, nullptr, &dockMain);
+            
+            // Dock windows to their respective areas
+            ImGui::DockBuilderDockWindow("###CCImEditor.Console.0", dockBottom);
+            ImGui::DockBuilderDockWindow("###CCImEditor.NodeProperties.0", dockRight);
+            ImGui::DockBuilderDockWindow("###CCImEditor.Viewport.0", dockMain);
+            ImGui::DockBuilderDockWindow("###CCImEditor.Assets.0", dockBottom);
+            ImGui::DockBuilderDockWindow("###CCImEditor.Animation.0", dockBottom);
+            ImGui::DockBuilderDockWindow("###CCImEditor.NodeTree.0", dockLeft);
+            
+            // Apply the layout
+            ImGui::DockBuilderFinish(dockspaceId);
+        }
 
         if (ImGui::BeginMenuBar())
         {
