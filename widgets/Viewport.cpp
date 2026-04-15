@@ -83,15 +83,17 @@ namespace CCImEditor
         if (!_camera)
             return;
 
-        ImGuiIO& io = ImGui::GetIO();
+        ImGuizmo::SetOrthographic(!_is3D);
+        ImGuizmo::BeginFrame();
+
         const ImVec2& windowPos = ImGui::GetWindowPos();
+        ImGuizmo::SetDrawlist();
         ImGuizmo::SetRect(windowPos.x, windowPos.y + ImGui::GetWindowHeight() - _targetSize.y, _targetSize.x, _targetSize.y);
 
         const cocos2d::Mat4& viewMatrix = _camera->getViewMatrix();
         const cocos2d::Mat4& projectionMatrix = _camera->getProjectionMatrix();
         cocos2d::Mat4 transform  = selectedNode->getNodeToParentTransform();
 
-        ImGuizmo::SetOrthographic(!_is3D);
         ImGuizmo::SetAlternativeWindow(ImGui::GetCurrentWindow());
         if (ImGuizmo::Manipulate(viewMatrix.m, projectionMatrix.m, _gizmoOperation, _isGizmoModeLocal ? ImGuizmo::LOCAL : ImGuizmo::WORLD, transform.m))
         {
