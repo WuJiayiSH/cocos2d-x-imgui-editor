@@ -381,7 +381,7 @@ namespace CCImEditor
         static bool draw(const char* label, MaskType& mask) {
             std::string preview;
             preview.reserve(100);
-            constexpr auto values = magic_enum::enum_values<T::Type>();
+            constexpr auto values = magic_enum::enum_values<typename T::Type>();
             for (auto enumValue : values)
             {
                 if ((mask & (MaskType)enumValue) > 0)

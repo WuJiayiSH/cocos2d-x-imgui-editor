@@ -76,6 +76,67 @@ namespace CCImEditor
         void performRecursively(cocos2d::Node *node, std::function<void(cocos2d::Node*)> func);
     }
 
+    enum class AnimationWrapMode
+    {
+        Normal,
+        Loop,
+        Reverse,
+        ReverseLoop,
+    };
+
+    class NodeImDrawer : public cocos2d::Component
+    {
+    public:
+        friend class NodeFactory;
+        friend class Animation;
+        friend class ImPropertyGroup;
+        static NodeImDrawer* create();
+        bool init() override;
+
+        void draw();
+        void serialize(cocos2d::ValueMap& target);
+        void deserialize(const cocos2d::ValueMap& source);
+        void play(const std::string& animation, AnimationWrapMode wrapMode = AnimationWrapMode::Normal);
+        void stop();
+
+        const std::string& getTypeName() const;
+        const std::string& getShortName() const;
+        ImPropertyGroup* getNodePropertyGroup() {return _nodePropertyGroup;}
+
+        const std::string& getFilename() const {return _filename;}
+        void setFilename(const std::string& filename) {_filename = filename;}
+
+        void setNodePropertyGroup(ImPropertyGroup* group) {_nodePropertyGroup = group;}
+        void setComponentPropertyGroup(std::string name, ImPropertyGroup* group);
+        ImPropertyGroup* getComponentPropertyGroup(std::string name) {return _componentPropertyGroups[name];}
+        const std::map<std::string, cocos2d::RefPtr<ImPropertyGroup>>& getComponentPropertyGroups() const {return _componentPropertyGroups;}
+
+        bool canHaveChildren() const;
+        bool canHaveComponents() const;
+        bool canBeRoot() const;
+
+        void update(float dt) override;
+
+        bool isRecordingAnimation() const {return !_animationName.empty() && !_isPlayingAnimation;}
+    private:
+        void applyAnimationRecursively(bool isPlaying, const std::string& animation, int frame, int maxFrame, AnimationWrapMode wrapMode, uint16_t sample);
+
+        std::vector<Internal::Animation::SequenceItem> getAnimationSequenceItems(const std::string& animation) const;
+        std::unordered_map<std::string, bool> getAnimationNames() const;
+
+        uint32_t getMask() const;
+        cocos2d::RefPtr<ImPropertyGroup> _nodePropertyGroup;
+        std::map<std::string, cocos2d::RefPtr<ImPropertyGroup>> _componentPropertyGroups;
+        std::string _filename;
+
+        // animation
+        bool _isPlayingAnimation;
+        std::string _animationName;
+        int _currentFrame;
+        AnimationWrapMode _animationWrapMode = AnimationWrapMode::Loop;
+        float _elapsed = 0.0f;
+    };
+
     class Animation;
     class ImPropertyGroup : public cocos2d::Ref
     {
@@ -172,7 +233,7 @@ namespace CCImEditor
             // use PropertyType if DrawerType is not specified
             using PropertyOrDrawerType = typename std::conditional<std::is_same<DrawerType, Internal::DefaultArgumentTag>::value, PropertyType, DrawerType>::type;
 
-            using PropertyImDrawerType = typename PropertyImDrawer<PropertyOrDrawerType>;
+            using PropertyImDrawerType = PropertyImDrawer<PropertyOrDrawerType>;
 
             const char* key;
             if (key = strstr(label, "###"))
@@ -365,67 +426,6 @@ namespace CCImEditor
         }
 
         T _defaultValue;
-    };
-
-    enum class AnimationWrapMode
-    {
-        Normal,
-        Loop,
-        Reverse,
-        ReverseLoop,
-    };
-
-    class NodeImDrawer : public cocos2d::Component
-    {
-    public:
-        friend class NodeFactory;
-        friend class Animation;
-        friend class ImPropertyGroup;
-        static NodeImDrawer* create();
-        bool init() override;
-
-        void draw();
-        void serialize(cocos2d::ValueMap& target){_nodePropertyGroup->serialize(target);}
-        void deserialize(const cocos2d::ValueMap& source){_nodePropertyGroup->deserialize(source);}
-        void play(const std::string& animation, AnimationWrapMode wrapMode = AnimationWrapMode::Normal);
-        void stop();
-
-        const std::string& getTypeName() const {return _nodePropertyGroup->getTypeName();}
-        const std::string& getShortName() const {return _nodePropertyGroup->getShortName();}
-        ImPropertyGroup* getNodePropertyGroup() {return _nodePropertyGroup;}
-
-        const std::string& getFilename() const {return _filename;}
-        void setFilename(const std::string& filename) {_filename = filename;}
-
-        void setNodePropertyGroup(ImPropertyGroup* group) {_nodePropertyGroup = group;}
-        void setComponentPropertyGroup(std::string name, ImPropertyGroup* group);
-        ImPropertyGroup* getComponentPropertyGroup(std::string name) {return _componentPropertyGroups[name];}
-        const std::map<std::string, cocos2d::RefPtr<ImPropertyGroup>>& getComponentPropertyGroups() const {return _componentPropertyGroups;}
-
-        bool canHaveChildren() const;
-        bool canHaveComponents() const;
-        bool canBeRoot() const;
-
-        void update(float dt) override;
-
-        bool isRecordingAnimation() const {return !_animationName.empty() && !_isPlayingAnimation;}
-    private:
-        void applyAnimationRecursively(bool isPlaying, const std::string& animation, int frame, int maxFrame, AnimationWrapMode wrapMode, uint16_t sample);
-
-        std::vector<Internal::Animation::SequenceItem> getAnimationSequenceItems(const std::string& animation) const;
-        std::unordered_map<std::string, bool> getAnimationNames() const;
-
-        uint32_t getMask() const;
-        cocos2d::RefPtr<ImPropertyGroup> _nodePropertyGroup;
-        std::map<std::string, cocos2d::RefPtr<ImPropertyGroup>> _componentPropertyGroups;
-        std::string _filename;
-
-        // animation
-        bool _isPlayingAnimation;
-        std::string _animationName;
-        int _currentFrame;
-        AnimationWrapMode _animationWrapMode = AnimationWrapMode::Loop;
-        float _elapsed = 0.0f;
     };
 }
 

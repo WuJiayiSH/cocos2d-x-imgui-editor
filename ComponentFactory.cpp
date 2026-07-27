@@ -12,7 +12,7 @@ namespace CCImEditor
     {
         std::unordered_map<std::string, ComponentFactory::ComponentType>::iterator it = _componentTypes.find(name);
         if (it == _componentTypes.end())
-            return false;
+            return nullptr;
 
         return it->second.create();
     }

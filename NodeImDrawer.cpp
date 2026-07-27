@@ -377,4 +377,10 @@ namespace CCImEditor
             }
         });
     }
+
+    void NodeImDrawer::serialize(cocos2d::ValueMap& target){_nodePropertyGroup->serialize(target);}
+    void NodeImDrawer::deserialize(const cocos2d::ValueMap& source){_nodePropertyGroup->deserialize(source);}
+
+    const std::string& NodeImDrawer::getTypeName() const {return _nodePropertyGroup->getTypeName();}
+    const std::string& NodeImDrawer::getShortName() const {return _nodePropertyGroup->getShortName();}
 }

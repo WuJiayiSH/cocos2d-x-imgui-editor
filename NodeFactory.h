@@ -6,6 +6,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "NodeImDrawer.h"
+
 namespace CCImEditor
 {
     enum NodeFlags
