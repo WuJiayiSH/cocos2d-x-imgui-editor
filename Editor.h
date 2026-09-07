@@ -14,6 +14,7 @@ namespace CCImEditor
     {
     public:
         static Editor* getInstance();
+        static void destroyInstance();
 
         using cocos2d::Layer::getUserObject;
         using cocos2d::Layer::setUserObject;

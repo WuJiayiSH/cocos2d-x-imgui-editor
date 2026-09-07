@@ -382,6 +382,11 @@ namespace CCImEditor
         return s_instance;
     }
 
+    void Editor::destroyInstance()
+    {
+        s_instance = nullptr;
+    }
+
     bool Editor::isInstancePresent()
     {
         return s_instance && s_instance->getParent() != nullptr;
